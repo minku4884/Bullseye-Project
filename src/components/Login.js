@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useId } from "react";
 import { Link } from "react-router-dom";
 import "./Login.css";
-import mainlogo from "../asset/HillnToe-Eng.png";
-import mainlogo_symbol from "../asset/HillnToe-symbol.png";
 import ApiClient, { api_method } from "./ApiClient";
 import MainLayout from "./MainLayout";
 import Modal from "react-bootstrap/Modal";
 import { useNavigate, Routes, Route } from "react-router-dom";
+import mainlogo from "../asset/logo_pwc.png"
 import axios from "axios";
 
 
@@ -119,13 +118,9 @@ const Login = () => {
 
         </Routes>
       </Modal>
+      <img className="hillntoe-symbol" src={mainlogo}/>
       <div className="logo-container">
-        <img
-          src={mainlogo_symbol}
-          alt="HillnToe Eng"
-          className="hillntoe-symbol"
-        />
-        <img src={mainlogo} alt="HillnToe Logo" className="hillntoe-Info" />
+        <div className="hillntoe-Info" style={{fontSize:'30px',fontWeight:'bold'}}>통합 모니터링 SW</div>
         <p className="logo-text">
           최고 수준의 레이다 기술력을 보유하며 IoT, 인공지능,
           <br />
@@ -212,7 +207,6 @@ function FindID(props) {
       })
       .then((response) => {
         if (response.status === 200) {
-          console.log(response.data);
           const foundUsername = response.data;
           setFoundId(foundUsername);
         } else {
@@ -220,7 +214,6 @@ function FindID(props) {
         }
       })
       .catch((error) => {
-        console.log(error.response);
         setFoundId("아이디를 찾을 수 없습니다.");
       });
   };
@@ -301,7 +294,6 @@ function FindPW(props) {
       })
       .then((response) => {
         if (response.status === 200) {
-          console.log(response.data);
           setFoundPw(`${mailAddress}, 이메일로 전송이 되었습니다`);
         } else {
           setFoundPw("비밀번호를 찾을 수 없습니다");
@@ -311,7 +303,6 @@ function FindPW(props) {
         if (error.response && error.response.status === 400) {
           setFoundPw("비밀번호를 찾을 수 없습니다");
         } else {
-          console.log(error.response);
           setFoundPw("오류가 발생했습니다. 나중에 다시 시도해주세요");
         }
       });

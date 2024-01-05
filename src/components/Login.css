@@ -73,6 +73,10 @@ form {
   margin-top: 20px;
 }
 
+.check_label input{
+  margin: 0px 7px 0px 10px;
+}
+
 .login_btn {
   position: absolute;
   top: 210px;
@@ -103,16 +107,16 @@ form {
 
 .hillntoe-symbol {
   position: absolute;
-  width: 73px;
-  height: 73px;
-  top: 435px;
-  left: 472px;
+  width: 140px;
+  height: 106px;
+  top: 370px;
+  left: 440px;
 }
 .hillntoe-Info {
   position: absolute;
-  width: 238px;
-  height: 71px;
-  top: 507px;
+  width: 240px;
+  height: 65px;
+  top: 500px;
   left: 390px;
 }
 
@@ -120,8 +124,8 @@ form {
   position: absolute;
   font-size: 18px;
   color: #191919;
-  top: 580px;
-  left: 300px;
+  top: 550px;
+  left: 310px;
   font-weight: 600;
 }
 

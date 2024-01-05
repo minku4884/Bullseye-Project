@@ -1,5 +1,3 @@
-
-
 .Signup-container {
     width: 1920px;
     height: 1080px;
@@ -10,19 +8,10 @@
 
 .Mainlogo {
     width: 168px;
-    height: 32px;
+    height: 46px;
     margin: 29px auto;
 }
 
-.Signup-Header-container{
-    background-color: #ffffff;
-    width: 100%;
-    height: 90px;
-}
-
-.Signup-Main-container {
-
-}
 
 .Signup-title {
     display: inline-block;

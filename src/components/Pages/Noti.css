@@ -1,5 +1,3 @@
-
-
 th,td {
     height: 50px;
     text-align: center;
@@ -52,6 +50,11 @@ th,td {
     position: absolute;
     margin: 15px 0px 0px 337px;
 }
+
+.notification-search input {
+    font-size: 12.5px;
+}
+
 
 .notification-search > input {
     width: 131px;

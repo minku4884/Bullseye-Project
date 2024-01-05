@@ -61,7 +61,6 @@ function Noti() {
 
       if (alarmInfoResponse?.status === 200) {
         const alarmData = alarmInfoResponse.data;
-
         setAlarmInfo(alarmData.map((item) => item));
       } else {
         throw new Error(
@@ -90,7 +89,6 @@ function Noti() {
       if (response?.status === 200) {
         const alarmData = response.data;
         setAlarmInfo(alarmData);
-        console.log(alarmData);
       } else {
         throw new Error(`Failed to fetch alarm info (${response?.status})`);
       }
@@ -109,7 +107,6 @@ function Noti() {
   };
   const handleSearchTypeChange = (searchType) => {
     setIsSearchByDate(searchType === "알람 기간 검색");
-    console.log(searchType);
     if (searchType === "알람 전체 조회") {
       setStartDate("")
       setEndDate("")
@@ -128,13 +125,12 @@ function Noti() {
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
-
   return (
     <div>
       <div className="notification-header">
         <div className="notification-header-title">
           <div style={{ fontSize: "28px", fontWeight: 500 }}>
-            {userName},님 환영합니다
+            {userName}님, 환영합니다
           </div>
           <div style={{ fontSize: "20px" }}>
             NOTIFICATION 페이지에서 장치 신호 알람을 확인하고 관리하세요
@@ -167,6 +163,7 @@ function Noti() {
             type="text"
             value={startDate}
             disabled={!isSearchByDate}
+            placeholder="ex)YYYYMMDDHHmm"
             onChange={(e) => {
               setStartDate(e.target.value);
             }}
@@ -176,6 +173,7 @@ function Noti() {
             type="text"
             value={endDate}
             disabled={!isSearchByDate}
+            placeholder="ex)YYYYMMDDHHmm"
             onChange={(e) => {
               setEndDate(e.target.value);
             }}
@@ -219,7 +217,7 @@ function Noti() {
                   borderBottom: "1px solid #191919",
                 }}
               >
-                ID
+                No.
               </th>
               <th
                 style={{
@@ -241,7 +239,7 @@ function Noti() {
                   borderBottom: "1px solid #191919",
                 }}
               >
-                알람 유형
+                상세 알람 정보	
               </th>
               <th
                 style={{
@@ -252,7 +250,7 @@ function Noti() {
                   borderBottom: "1px solid #191919",
                 }}
               >
-                상세 알람 정보
+                알람 유형
               </th>
               <th
                 style={{
@@ -263,23 +261,12 @@ function Noti() {
                   borderBottom: "1px solid #191919",
                 }}
               >
-                수정
-              </th>
-              <th
-                style={{
-                  width: "11%",
-                  backgroundColor: "#fff",
-                  borderColor: "#ededed",
-                  borderRight: "1px solid #fff",
-                  borderBottom: "1px solid #191919",
-                }}
-              >
-                삭제
+                비고
               </th>
             </tr>
           </thead>
           <tbody>
-            {currentAlarms.reverse().map((value, index) => (
+            {currentAlarms.map((value, index) => (
               <tr className="table-list" key={index}>
                 <td
                   style={{
@@ -288,7 +275,7 @@ function Noti() {
                     borderRight: "1px solid #fff",
                   }}
                 >
-                  {value.alarm_id}
+                  {(currentPage - 1) * alarmsPerPage + index + 1}
                 </td>
                 <td
                   style={{
@@ -336,19 +323,8 @@ function Noti() {
                     borderRight: "1px solid #fff",
                   }}
                 >
-                  <button className="Action-Btn">update</button>
                 </td>
-                <td
-                  style={{
-                    width: "11%",
-                    borderColor: "#ededed",
-                    borderRight: "1px solid #fff",
-                  }}
-                >
-                  <button className="Action-Btn" style={{ color: "#ff3120" }}>
-                    delete
-                  </button>
-                </td>
+
               </tr>
             ))}
           </tbody>

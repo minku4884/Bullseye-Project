@@ -2,70 +2,123 @@ import { useEffect } from "react";
 import axios from "axios";
 import React, { useState } from "react";
 import { Line } from "react-chartjs-2";
-import Select from 'react-select'
 
-
-function ChartComponent2() {
+function ChartComponent2(props) {
   const token = sessionStorage.getItem("authorizeKey");
+  const [AvgHRData, setAvgHRDate] = useState([]);
+  const [AvgBRData, setAvgBRData] = useState([]);
+  const [timestamp, setTimestamp] = useState([]);
+  const [chartdata, setChartData] = useState([]);
+  const [deviceType, setDeviceType] = useState(0)
+  const maxDataValue = Math.max(...[...AvgHRData, ...AvgBRData]);
+  const maxDataValueWithPadding = Math.ceil(maxDataValue * 1.29);
 
-  const [HRArr, setHRArr] = useState([60, 70, 40, 50, 60, 70, 0]); // HR COUNT(Arr.length = 12)
-  const [BRArr, setBRArr] = useState([20, 10, 20, 10, 10, 10, 0]); // BR COUNT(Arr.length = 12)
-  const [chartLabel, setChartLabel] = useState([]);
-  const [AvgHRData,setAvgHRDate] = useState([]);
-  const [AvgBRData,setAvgBRData] = useState([]);
-
-
-
-
-  const HRBRData = () => {
-    axios.get(`http://api.hillntoe.com:7810/api/acqdata/count?device_id=1&acq_type=D&count=7`,{headers:{Authorization:token}})
-    .then((response)=>{
-      const data = response.data
-      data.map((value,index)=>{
-        AvgHRData.push(value.datas[2].max_value)
-      })
-      data.map((value,index)=>{
-        AvgBRData.push(value.datas[3].max_value)
-      })        
-    })
-    .catch((error)=>{console.error(error)})
-  }
-
-
-  // 차트 Label  function
-  const LabelArrayData = () => {
-    const today = new Date();
-    const endDate = new Date(today.getFullYear(), 9, 2);
-    const startDate = new Date(today.getFullYear(), 9, 8);
+  const generateHourlyLabels = () => {
+    const labels = [];
+    const currentHour = new Date().getHours();
   
-    const dateArray = [];
-  
-    for (let date = startDate; date >= endDate; date.setDate(date.getDate() - 1)) {
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      const formattedDate = `${month}월${day}일`;
-      dateArray.push(formattedDate);
+    for (let i = 23; i >= 0; i--) {
+      const hour = (currentHour - i + 24) % 24; // 시간이 [0, 23] 범위 내에 있도록 보장
+      labels.push(`${hour}시`);
     }
   
-    const dateArraysort = dateArray.reverse();
-    setChartLabel(dateArraysort);
-  }
-  HRBRData(); 
+    return labels;
+  };
+   // SEARCH YYYYMMDDHHmm
+   const today = new Date();
+   const year = today.getFullYear();
+   const month = (today.getMonth() + 1).toString().padStart(2, "0");
+   const day = today.getDate().toString().padStart(2, "0");
+   const Hours = today.getHours().toString().padStart(2, "0");
+   const end_date = `${year}${month}${day}${Hours}00`;
+   
+   
+   // Calculate start_date (1 day ago)
+   const yesterday = new Date(today);
+   yesterday.setDate(today.getDate() - 1);
+   const start_year = yesterday.getFullYear();
+   const start_month = (yesterday.getMonth() + 1).toString().padStart(2, "0");
+   const start_day = yesterday.getDate().toString().padStart(2, "0");
+   const start_date = `${start_year}${start_month}${start_day}${Hours}00`;
+ 
+  const HRBRData = async (deviceId) => {
+    try {
+      // 첫 번째 Axios 요청
+      const response1 = await axios.get(
+        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=H&start_date=${start_date}&end_date=${end_date}`,
+        { headers: { Authorization: token } }
+      );
+  
+      // 첫 번째 Axios 요청의 응답을 이용하여 두 번째 Axios 요청 실행
+      const response2 = await axios.get(
+        `http://api.hillntoe.com:7810/api/config/device/radar/info?device_id=${deviceId}`,
+        { headers: { Authorization: token } }
+      );
+  
+      // 두 번째 Axios 요청의 응답에서 deviceType을 추출하여 상태 업데이트
+      const deviceTypeResponse = response2.data;
+      if (deviceTypeResponse && deviceTypeResponse.length > 0) {
+        setDeviceType(deviceTypeResponse[0].deviceType);
+  
+        // 첫 번째 Axios 요청의 응답을 이용하여 나머지 로직 실행
+        const data = response1.data;
+        const devicedataType = deviceTypeResponse[0].deviceType;
+        data.reverse();
+        setTimestamp(data.map((value, index) => value.timestamp));
+        if (devicedataType === 14101) {
+          const avgHRValues = data.map((value) => value.datas[3].avg_value);
+          const avgBRValues = data.map((value) => value.datas[2].avg_value);
+          setAvgHRDate(avgHRValues);
+          setAvgBRData(avgBRValues);
+        } else if (devicedataType === 14201) {
+          const avgHRValues = data.map((value) => value.datas[12].avg_value);
+          const avgBRValues = data.map((value) => value.datas[10].avg_value);
+          setAvgHRDate(avgHRValues);
+          setAvgBRData(avgBRValues);
+        }
+      } else {
+        // deviceType이 없는 경우에 대한 처리
+        console.error("deviceType not found");
+      }
+    } catch (error) {
+      console.error(error);
+    }
 
+  };
+
+  const fetchData = async (timestamps) => {
+    const results = await Promise.all(
+      timestamps.map(async (timestamp) => {
+        return await axios
+          .get(`http://api.hillntoe.com:7810/api/timestamp/tostring?timestamp=${timestamp}`)
+          .then((response) => response.data)
+          .catch((error) => {
+            console.error(error);
+            return null;
+          });
+      })
+    );
+    setChartData(results.filter((data) => data !== null));
+  };
 
   useEffect(() => {
-    LabelArrayData();
-  }, []); 
+    HRBRData(props.dropDown);
+  }, [props.dropDown]); // props.dropDown 값이 변경될 때마다 실행
 
- 
-  console.log(AvgHRData)
-  console.log(AvgBRData)
+  useEffect(() => {
+    fetchData(timestamp);
+  }, [timestamp]);
 
-
+  const labels = chartdata.map(dateString => {
+    const dateObj = new Date(dateString);
+    const hours = dateObj.getHours().toString().padStart(2, '0'); // 시간을 2자리로 만듦
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0'); // 분을 2자리로 만듦
+    return `${hours}:${minutes}`;
+  });
 
 
   let data = {
-    labels: chartLabel,
+    labels: labels,
     datasets: [
       {
         label: "심박수",
@@ -73,6 +126,7 @@ function ChartComponent2() {
         fill: false,
         borderColor: "#d60225",
         tension: 0.01,
+        yAxisID: "y1",
       },
       {
         label: "호흡수",
@@ -80,38 +134,42 @@ function ChartComponent2() {
         fill: false,
         borderColor: "#0041b9",
         tension: 0.01,
-        yAxisID: "y2", // y2 축에 연결하기 위해 yAxisID 추가
+        yAxisID: "y1",
       },
     ],
   };
+  
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-
     scales: {
       x: {
         grid: {
           display: false, // x축 그리드 라인 숨기기
         },
       },
-      y: {
+  
+      y1: {
         beginAtZero: true,
-        min: 40,
-        max: 160,
+        min: 0,
+        max: maxDataValueWithPadding, // 수정: BRArr 데이터의 최대값을 고려하여 적절한 값으로 변경
+        position: "left",
         ticks: {
           callback: function (value) {
             return value + "bpm";
           },
         },
         grid: {
-          borderDash: [4, 4], // y축 점선 스타일 설정
+          display: true,
+          borderDash: [4, 4], // y2 축 그리드 라인 숨기기
         },
       },
+      
       y2: {
         beginAtZero: true,
         min: 0,
-        max: 30, // 수정: BRArr 데이터의 최대값을 고려하여 적절한 값으로 변경
+        max: maxDataValueWithPadding, // 수정: BRArr 데이터의 최대값을 고려하여 적절한 값으로 변경
         position: "right",
         ticks: {
           callback: function (value) {
@@ -119,7 +177,8 @@ function ChartComponent2() {
           },
         },
         grid: {
-          display: false, // y2 축 그리드 라인 숨기기
+          display: false,
+          borderDash: [4, 4], // y2 축 그리드 라인 숨기기
         },
       },
     },
@@ -146,13 +205,6 @@ function ChartComponent2() {
       },
     },
   };
-
-  const options = [
-    { value: '7days', label: '7days' },
-    { value: '30days', label: '30days' },
-    ]
-
-
 
 
   return (

@@ -19,19 +19,54 @@
   margin-right: 32px;
 }
 
+.content-loading {
+  font-size: 18px;
+  font-weight: 500;
+}
 
+.status-content {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.content-main.disabled {
+  opacity: 0.3; 
+  pointer-events: none; /* 이벤트 차단 */
+}
 
 
 .header-container {
   width: 100%;
   background-color: #ffffff;
   height: 52px;
-  padding: 17px 0px 18px 26px;
+  padding: 10px 0px 5px 26px;
   font-weight: 500;
   font-size: 18.5px;
   color: #191919;
 }
 
+.header-Btn-mg {
+  width: 161px;
+  display: inline-block;
+  margin: 0px 20px 5px 180px;
+  background-color: #f8f8f8;
+  border-radius: 17.5px;
+}
+
+.header-Btn {
+  width: 50px;
+  height: 35px;
+  border: none;
+  border-radius: 17.5px;
+  background-color: #f8f8f8;
+}
+
+.Total-Time {
+  display: inline-block;
+  width: 230px;
+  height: 30px;
+  color: #0041b9;
+}
 .main-container {
   width: 100%;
   display: flex;
@@ -40,12 +75,33 @@
   
 }
 
+
+.status-Footer {
+  width: 100%;
+  height: 58px;
+  margin: 25px 0px 12px 0px ;
+  padding-right: 20px;
+  text-align: right;
+  height: 2px;
+  font-size: 13px;
+  color: #767676;
+  font-weight: 500;
+}
+
+
 .main-recent-alarm {
   margin: 0 auto;
   overflow-y: auto;
 }
 
 .main-recent-alarm::-webkit-scrollbar {
+  width: 7px;
+  height: 40%;
+  border-radius: 10px;
+  background: #84848447;
+}
+
+.status-scroll::-webkit-scrollbar {
   width: 7px;
   height: 40%;
   border-radius: 10px;
@@ -76,7 +132,6 @@
   font-size: 20px;
   margin: 80px 0px 0px 26px;
 }
-
 .main-time2 {
   font-size: 20px;
   margin: 30px 0px 0px 26px;
@@ -87,9 +142,22 @@
   margin: 80px 0px 0px 26px;
 }
 
-
+.main-content1{
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 40px 0px 0px 0px;
+}
 
 .main-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 180px;
+  height: 180px;
+}
+
+.main-chart1 {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -111,4 +179,9 @@
 .main-danger-title {
   width: 100%;
   padding-bottom: 5px;
+}
+.header-Btn.selected {
+  background-color: #0041b9;
+  color: white;
+  /* 기타 원하는 스타일 추가 */
 }

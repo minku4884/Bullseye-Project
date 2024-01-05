@@ -5,17 +5,15 @@ import Noti from "./Pages/Noti";
 import User from "./Pages/User";
 import Dashboard from "./Pages/Dashboard";
 import Setting from "./Pages/Setting";
-import HILLNTOLOGO from "../asset/Main_Hillntoe.png";
 import "./MainLayout.css";
 import UserImg_gray from "../asset/User_gray.png";
 import UserImg_white from "../asset/User_white.png";
 import NotificationImg_gray from "../asset/Notification_gray.png";
 import NotificationImg_white from "../asset/Notification_white.png";
-import SettingImg_gray from "../asset/Setting_gray.png";
-import SettingImg_white from "../asset/Setting_white.png";
 import Dashboard_gray from "../asset/Dashborad_gray.png";
 import Dashboard_white from "../asset/Dashboard_white.png";
 import Logout from "../asset/Logout.png";
+import mainLogo from "../asset/logo_pwc.png"
 import { useState } from "react";
 
 const { Header, Sider, Content } = Layout;
@@ -53,15 +51,12 @@ const MainLayout = () => {
           width: "100%",
           background: colorBgContainer,
           height: "74px",
-          padding: "21px 0px 21px 32px",
+          padding: "21px 0px 21px 15px",
         }}
       >
         {/* 로고 이미지 */}
-        <img
-          src={HILLNTOLOGO}
-          alt="HillntoeLogo"
-          style={{ width: "180px", height: "35px" }}
-        />
+        <img src={mainLogo} alt="mainlogo" style={{width:'80px'}}/>
+
         <div className="d-flex align-items-center">
           {/* 날짜 타이머 컴포넌트 */}
           <DateTimer />
@@ -122,19 +117,7 @@ const MainLayout = () => {
             />
             <span>NOTIFICATION</span>
           </Link>
-          <Link
-            className={`SideBtn ${clickBtn === "/setting" ? "selected" : ""}`}
-            to="/setting"
-            onClick={() => handleMenuClick("/setting")}
-          >
-            {/* Setting 메뉴 */}
-            <img
-              className="Menu_icon_image"
-              src={clickBtn === "/setting" ? SettingImg_white : SettingImg_gray}
-              alt="SettingImage"
-            />
-            <span>SETTING</span>
-          </Link>
+
         </Sider>
         <Layout className="site-layout">
           {/* 메인 컨텐츠 */}

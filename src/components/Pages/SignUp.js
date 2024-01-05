@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import ApiClient, { api_method } from "../ApiClient";
 import "./SignUp.css";
-import HILLNTOLOGO from "/HillnToe/hillntoe/src/asset/Main_Hillntoe.png";
-import { Placeholder } from "react-bootstrap";
 import { useNavigate,Routes,Route,Link } from "react-router-dom";
 const SignUp = () => {
   const [userID, setUserID] = useState("");
@@ -55,7 +53,6 @@ const SignUp = () => {
         );
 
         if (response?.status === 200) {
-          console.log(response)
           console.log("회원가입 성공!");
           alert("회원가입 성공");
           setUserID("");
@@ -77,7 +74,6 @@ const SignUp = () => {
   return (
     <div className="Signup-container">
       <div className="Signup-Header-container">
-        <img src={HILLNTOLOGO} alt="SignupLogo" className="Mainlogo" style={{cursor:'pointer'}} onClick={()=>{naviage('/')}} />
       </div>
       <div className="Signup-Main-container">
         <span className="Signup-title">회원가입</span>

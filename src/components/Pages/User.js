@@ -103,7 +103,6 @@ const handleChangeInfo = async () => {
         data,
         token
       );
-      console.log(response)
       if (response?.status === 200) {
       } else {
         alert("회원을 탈퇴하였습니다");
