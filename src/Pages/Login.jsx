@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useId } from "react";
 import { Link } from "react-router-dom";
-import "./Login.css";
-import ApiClient, { api_method } from "./ApiClient";
-import MainLayout from "./MainLayout";
+import "../styles/Login.css";
+import ApiClient, { api_method } from "../utils/ApiClient";
+import MainLayout from "../routes/MainLayout";
 import Modal from "react-bootstrap/Modal";
 import { useNavigate, Routes, Route } from "react-router-dom";
-import mainlogo from "../asset/logo_pwc.png"
+import mainlogo from "../asset/img/logo_pwc.png";
 import axios from "axios";
-
-
 
 const Login = () => {
   const storedToken = sessionStorage.getItem("authorizeKey");
@@ -19,7 +17,6 @@ const Login = () => {
   const [loginError, setLoginError] = useState(false);
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
-
   const handleClose = () => {
     setShow(false);
     navigate("/");
@@ -85,7 +82,7 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <Modal  show={show} onHide={handleClose} >
+      <Modal show={show} onHide={handleClose}>
         <Modal.Header
           style={{
             backgroundColor: "#fff",
@@ -115,12 +112,16 @@ const Login = () => {
             path="/findPw"
             element={<FindPW handleClose={handleClose} />}
           />
-
         </Routes>
       </Modal>
-      <img className="hillntoe-symbol" src={mainlogo}/>
+      <img className="hillntoe-symbol" src={mainlogo} />
       <div className="logo-container">
-        <div className="hillntoe-Info" style={{fontSize:'30px',fontWeight:'bold'}}>통합 모니터링 SW</div>
+        <div
+          className="hillntoe-Info"
+          style={{ fontSize: "30px", fontWeight: "bold" }}
+        >
+          통합 모니터링 SW
+        </div>
         <p className="logo-text">
           최고 수준의 레이다 기술력을 보유하며 IoT, 인공지능,
           <br />
@@ -178,7 +179,7 @@ const Login = () => {
                 color: "#0041b9",
                 textDecoration: "none",
                 width: "100%",
-                display:'block'
+                display: "block",
               }}
             >
               회원가입
@@ -244,9 +245,7 @@ function FindID(props) {
         </div>
       ) : (
         <>
-          <div className="find-id-title">
-            이메일
-          </div>
+          <div className="find-id-title">이메일</div>
           <input
             className="find-id-input"
             type="email"
@@ -284,32 +283,38 @@ function FindPW(props) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [mailAddress, setMailAddress] = useState("");
   const [foundPw, setFoundPw] = useState("");
+  const [buttonClicked, setButtonClicked] = useState(false); // 버튼 클릭 여부를 관리하는 상태
+
 
   const handleFindPwSubmit = () => {
-    axios
-      .post("http://192.168.0.78:7810/api/account/find/password", {
-        userID: userID,
-        phoneNumber: phoneNumber,
-        mailAddress: mailAddress,
-      })
-      .then((response) => {
-        if (response.status === 200) {
-          setFoundPw(`${mailAddress}, 이메일로 전송이 되었습니다`);
-        } else {
-          setFoundPw("비밀번호를 찾을 수 없습니다");
-        }
-      })
-      .catch((error) => {
-        if (error.response && error.response.status === 400) {
-          setFoundPw("비밀번호를 찾을 수 없습니다");
-        } else {
-          setFoundPw("오류가 발생했습니다. 나중에 다시 시도해주세요");
-        }
-      });
+    if (!buttonClicked) {
+      // 버튼이 클릭되지 않은 상태일 때만 실행
+      setButtonClicked(true); // 버튼 클릭 상태로 변경
+      axios
+        .post("http://192.168.0.78:7810/api/account/find/password", {
+          userID: userID,
+          phoneNumber: phoneNumber,
+          mailAddress: mailAddress,
+        })
+        .then((response) => {
+          if (response.status === 200) {
+            setFoundPw(`${mailAddress}, 이메일로 전송이 되었습니다`);
+          } else {
+            setFoundPw("비밀번호를 찾을 수 없습니다");
+          }
+        })
+        .catch((error) => {
+          if (error.response && error.response.status === 400) {
+            setFoundPw("비밀번호를 찾을 수 없습니다");
+          } else {
+            setFoundPw("오류가 발생했습니다. 나중에 다시 시도해주세요");
+          }
+        });
+    }
   };
 
   return (
-    <div  className="Login-Find-Modal">
+    <div className="Login-Find-Modal">
       {foundPw ? (
         <div>
           <div className="foundIDbox">
@@ -372,7 +377,5 @@ function FindPW(props) {
     </div>
   );
 }
-
-
 
 export default Login;

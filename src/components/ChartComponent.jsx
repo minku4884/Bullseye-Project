@@ -1,49 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import axios from "axios";
+import ApiClient, { api_method } from "../utils/ApiClient";
+import API_timestamp from "../store/timestamps"
+
+
 
 function ChartComponent(props) {
+
+  const client = new ApiClient();
+  const api_timestamp = new API_timestamp();
   const token = sessionStorage.getItem("authorizeKey");
   const [HRArr, setHRArr] = useState([]);
   const [BRArr, setBRArr] = useState([]);
   const [chartLabel, setChartLabel] = useState([]);
-
-
   const maxDataValue = Math.max(...[...HRArr, ...BRArr]);
   const maxDataValueWithPadding = Math.ceil(maxDataValue * 1.29);
-
-  // SEARCH YYYYMMDDHHmm
-
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = (today.getMonth() + 1).toString().padStart(2, "0");
-  const day = today.getDate().toString().padStart(2, "0");
-  const hours = today.getHours().toString().padStart(2, "0");
-  const end_date = `${year}${month}${day}${hours}00`;
-
-  const fiveDaysAgo = new Date(today);
-  fiveDaysAgo.setDate(today.getDate() - 1);
-
-  const fiveDaysAgoYear = fiveDaysAgo.getFullYear();
-  const fiveDaysAgoMonth = (fiveDaysAgo.getMonth() + 1).toString().padStart(2, "0");
-  const fiveDaysAgoDay = fiveDaysAgo.getDate().toString().padStart(2, "0");
-
-  const start_date = `${fiveDaysAgoYear}${fiveDaysAgoMonth}${fiveDaysAgoDay}${hours}00`;
-
-
-  const fetchDataForDevice = (deviceId) => {
-    return axios.get(
-      `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=E&start_date=${start_date}&end_date=${end_date}`,
-      {
-        headers: {
-          Authorization: token,
-        },
-      }
-    );
-  };
-  
   let response = [];
 
+
+
+  // CHART API(하루전, 현재) 요청
+  const fetchDataForDevice = (deviceId) => {
+    const response = client.RequestAsync(
+      api_method.get,
+      `/api/acqdata/section?device_id=${deviceId}&acq_type=E&start_date=${api_timestamp.getOneDayAgo()}&end_date=${api_timestamp.date}`,
+      null,
+      null,
+      token
+    );
+    return response
+  };
+
+
+  // 특정 이벤트 이상 감지 count 로직(HR,BR 이상 파라미터 설정)
   const searchData = async () => {
     const deviceIds = props.deviceId;
     const promises = [];
@@ -51,93 +41,114 @@ function ChartComponent(props) {
       hrCount: {},
       brCount: {},
     };
-  
     for (const deviceId of deviceIds) {
       try {
-         const response1 =await axios.get(
-          `http://api.hillntoe.com:7810/api/config/device/info?device_id=${deviceId}`,
-          {
-            headers: {
-              Authorization: token,
-            },
-          }
+        const response1 = client.RequestAsync(
+          api_method.get,
+          `/api/config/device/info?device_id=${deviceId}`,
+          null,
+          null,
+          token
         );
         // 데이터 처리 작업 추가
-          response.push(response1)
+        response.push(response1);
         promises.push(fetchDataForDevice(deviceId));
       } catch (error) {
         console.error("Error fetching device info:", error);
       }
     }
-  
     try {
-
       const responses = await Promise.all(promises);
       const combinedData = responses.flatMap((response) => response.data);
-  
-      // const deviceType = response.map((value)=>value.data[0].device_type)
-      
+
       combinedData.reverse();
-      combinedData.forEach((value,index) => {
+      combinedData.forEach((value, index) => {
         const date = new Date(value.timestamp * 1000);
         const hour = date.getHours().toString().padStart(2, "0");
         const minute = date.getMinutes().toString().padStart(2, "0");
         const timeString = `${hour}:${minute}`;
-  
+
         if (!dateCounts[timeString]) {
           dateCounts[timeString] = {
             hrCount: 0,
             brCount: 0,
           };
         }
-        let BR, HR
-         if(value.datas.length == 9) {
+        let BR, HR;
+        if (value.datas.length == 9) {
           BR = value.datas[2].max_value;
           HR = value.datas[3].max_value;
-         } else if(value.datas.length == 13) {
+        } else if (value.datas.length == 13) {
           BR = value.datas[10].max_value;
           HR = value.datas[12].max_value;
-         }
-  
-        //  console.log(value.device_id, value.timestamp,HR,BR)
-
-        dateCounts[timeString].hrCount += HR !== 0 && (HR > 95 || HR < 40) ? 1 : 0;
-        dateCounts[timeString].brCount += BR !== 0 && (BR > 15 || BR < 5) ? 1 : 0;
-
+        }
+        dateCounts[timeString].hrCount +=
+          HR !== 0 && (HR > 95 || HR < 40) ? 1 : 0;
+        dateCounts[timeString].brCount +=
+          BR !== 0 && (BR > 15 || BR < 5) ? 1 : 0;
       });
-  
-      const chartDataArray = Object.entries(dateCounts).map(([time, counts]) => ({
-        time,
-        hrCount: counts.hrCount,
-        brCount: counts.brCount,
-      }));
-  
-      
-      // console.log(chartDataArray)
+      // 해당 시간의 이벤트 ex)13:00~13:59분까지의 카운트 측정 후 sum하여 13시를 대표하는 카운트
+      const chartDataArray = Object.entries(dateCounts).map(
+        ([time, counts]) => ({
+          time,
+          hrCount: counts.hrCount,
+          brCount: counts.brCount,
+        })
+      );
       const targetTimes = [
-        "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12",
-        "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"
+        "00",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
       ];
-  
+
       const filteredData = chartDataArray.filter((data) =>
         targetTimes.some((time) => data.time.startsWith(time))
       );
-  
       const mergedData = targetTimes.reduce((result, targetTime) => {
-        const filteredByTime = filteredData.filter((data) => data.time.startsWith(targetTime));
-        const totalHrCount = filteredByTime.reduce((total, data) => total + data.hrCount, 0);
-        const totalBrCount = filteredByTime.reduce((total, data) => total + data.brCount, 0);
-  
+        const filteredByTime = filteredData.filter((data) =>
+          data.time.startsWith(targetTime)
+        );
+        const totalHrCount = filteredByTime.reduce(
+          (total, data) => total + data.hrCount,
+          0
+        );
+        const totalBrCount = filteredByTime.reduce(
+          (total, data) => total + data.brCount,
+          0
+        );
+
+        // console.log(`time : ${targetTime} hrCount : ${totalHrCount} brCount : ${totalBrCount}`)
+
         result.push({
           time: targetTime,
           hrCount: totalHrCount,
           brCount: totalBrCount,
         });
-  
+
         return result;
       }, []);
-      // console.log(mergedData)
-  
+
       setChartLabel(mergedData.map((value) => value.time + ":00"));
       setHRArr(mergedData.map((value) => value.hrCount));
       setBRArr(mergedData.map((value) => value.brCount));
@@ -145,14 +156,21 @@ function ChartComponent(props) {
       console.error("Error fetching device data:", error);
     }
   };
-  
+
+  // 특정 이벤트 이상 감지 count 로직 비동기 호출
   useEffect(() => {
     searchData();
   }, [props.deviceId]);
 
-
-  // console.log(HRArr, BRArr, chartLabel)
-
+  // HRArr, BRArr 카운트 0일 시 감지된 데이터 없음
+  function checkAllZeros(arr1, arr2) {
+    for (let idx in arr1) {
+      if (arr1[idx] !== 0 && arr2[idx] !== 0) {
+        return false;
+      }
+    }
+    return true;
+  }
   const data = {
     labels: chartLabel,
     datasets: [
@@ -220,7 +238,13 @@ function ChartComponent(props) {
 
   return (
     <div style={{ width: "694px", height: "240px", margin: "auto" }}>
-      <Line type="line" data={data} options={chartOptions} />
+      {checkAllZeros(HRArr,BRArr) ? (
+        <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: 11 }}>
+          감지된 데이터가 없습니다
+        </div>
+      ) : (
+        <Line data={data} options={chartOptions} />
+      )}
     </div>
   );
 }

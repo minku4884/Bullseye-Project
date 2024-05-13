@@ -92,6 +92,8 @@
 .main-recent-alarm {
   margin: 0 auto;
   overflow-y: auto;
+  padding: 0px;
+
 }
 
 .main-recent-alarm::-webkit-scrollbar {
@@ -106,10 +108,6 @@
   height: 40%;
   border-radius: 10px;
   background: #84848447;
-}
-
-.main-recent-alarm {
-  padding: 0px;
 }
 
 .main-alarm {

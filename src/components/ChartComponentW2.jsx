@@ -2,34 +2,21 @@ import { useEffect } from "react";
 import axios from "axios";
 import React, { useState } from "react";
 import { Line } from "react-chartjs-2";
-
+import API_timestamp from "../store/timestamps";
 function ChartComponentW2(props) {
   const token = sessionStorage.getItem("authorizeKey");
-
   const [AvgHRData, setAvgHRData] = useState([]);
   const [AvgBRData, setAvgBRData] = useState([]);
   const [timestamp, setTimestamp] = useState([]);
   const [chartdata, setChartData] = useState([]);
+  const api_timestamp = new API_timestamp()
   const maxDataValueWithPadding = Math.ceil(
     Math.max(...AvgHRData, ...AvgBRData) * 1.29
   );
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = (today.getMonth() + 1).toString().padStart(2, "0");
-  const day = today.getDate().toString().padStart(2, "0");
-  const end_date = `${year}${month}${day}2359`;
-
-  const fiveDaysAgo = new Date(today);
-  fiveDaysAgo.setDate(today.getDate() - 7);
-  const fiveDaysAgoYear = fiveDaysAgo.getFullYear();
-  const fiveDaysAgoMonth = (fiveDaysAgo.getMonth() + 1).toString().padStart(2, "0");
-  const fiveDaysAgoDay = fiveDaysAgo.getDate().toString().padStart(2, "0");
-  const start_date = `${fiveDaysAgoYear}${fiveDaysAgoMonth}${fiveDaysAgoDay}0000`;
-
   const HRBRData = async (deviceId) => {
     try {
       const response = await axios.get(
-        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=D&start_date=${start_date}&end_date=${end_date}`,
+        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=H&start_date=${api_timestamp.getSevenDayAgo()}&end_date=${api_timestamp.endTime}`,
         { headers: { Authorization: token } }
       );
       const response2 = await axios.get(`http://api.hillntoe.com:7810/api/config/device/radar/info?device_id=${deviceId}`,
@@ -38,8 +25,10 @@ function ChartComponentW2(props) {
       const devicedataType = data2[0].deviceType
       const data = response.data;
       data.reverse();
-
+      data.map((value)=>{console.log(value.datas)})
       setTimestamp(data.map((value, index) => value.timestamp));
+      // 24.05.09 이 부분 수정필요HR,BR DeviceType에 따른 데이터가 맞는지
+      // 이거 때문에 양 끝단 라벨 기준bpm도 낮아짐
       if (devicedataType === 14101) {
         const avgHRValues = data.map((value) => value.datas[3].avg_value);
         const avgBRValues = data.map((value) => value.datas[2].avg_value);
@@ -66,6 +55,7 @@ function ChartComponentW2(props) {
           return response.data;
         })
       );
+      console.log(results)
       setChartData(results.filter((data) => data !== null));
     } catch (error) {
       console.error(error);
@@ -94,6 +84,7 @@ function ChartComponentW2(props) {
     return formattedDate;
   });
 
+  console.log(chartdata)
 
 
 
@@ -102,7 +93,7 @@ function ChartComponentW2(props) {
 
     datasets: [
       {
-        label: "심박수",
+        label: "  심박수   ",
         data: AvgHRData,
         fill: false,
         borderColor: "#d60225",
@@ -110,7 +101,7 @@ function ChartComponentW2(props) {
         yAxisID: "y1",
       },
       {
-        label: "호흡수",
+        label: "  호흡수",
         data: AvgBRData,
         fill: false,
         borderColor: "#0041b9",
@@ -189,7 +180,7 @@ function ChartComponentW2(props) {
 
   return (
     <div style={{ width: "694px", height: "240px", margin: "auto" }}>
-      <Line data={data} options={chartOptions} />
+       {AvgHRData.length || AvgBRData.length > 0 ? (<Line data={data} options={chartOptions} />) : <div style={{fontSize:'18px',fontWeight:500 ,lineHeight:11}}>감지된 데이터가 없습니다</div>}
     </div>
   );
 }

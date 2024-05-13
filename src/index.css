@@ -10,16 +10,29 @@ code {
 }
 
 body {
+
   width: 1920px;
   height: 1080px;
-  margin: 0 auto;
   padding: 0px;
   flex: 1;
   overflow-x: hidden;
 }
-/* 1080px height 1920px width */
 
+/* 1080px height 1920px width */
 * {
   font-family: 'Noto Sans KR', sans-serif;
   
 }
+
+/* 전체 레이아웃 시작 */
+/* #root{
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hillntoe-container {
+  background: white;
+  position: relative;
+} */
+/* 전체 레이아웃 끝 */

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
-import "./User.css";
+import "../styles/User.css";
 import axios from "axios";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
-import ApiClient, { api_method } from "../ApiClient";
-import { ConstructionOutlined } from "@mui/icons-material";
+import ApiClient, { api_method } from "../utils/ApiClient";
 
 function User() {
   const [userName, setUserName] = useState("");

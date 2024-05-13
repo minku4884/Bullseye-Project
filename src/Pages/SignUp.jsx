@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import ApiClient, { api_method } from "../ApiClient";
-import "./SignUp.css";
+import ApiClient, { api_method } from "../utils/ApiClient";
+import "../styles/SignUp.css";
 import { useNavigate,Routes,Route,Link } from "react-router-dom";
 const SignUp = () => {
   const [userID, setUserID] = useState("");

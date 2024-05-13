@@ -2,34 +2,23 @@ import { useEffect } from "react";
 import axios from "axios";
 import React, { useState } from "react";
 import { Line } from "react-chartjs-2";
-
+import { api_method } from "../utils/ApiClient";
+import API_timestamp from "../store/timestamps";
 function ChartComponentM2(props) {
   
   const token = sessionStorage.getItem("authorizeKey");
-  const deviceIds = [2];
   const [AvgHRData, setAvgHRDate] = useState([]);
   const [AvgBRData, setAvgBRData] = useState([]);
   const [timestamp, setTimestamp] = useState([]);
   const [chartdata, setChartData] = useState([]);
+  const api_timestamp = new API_timestamp()
   const maxDataValueWithPadding = Math.ceil(
     Math.max(...AvgHRData, ...AvgBRData) * 1.29
   );
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = (today.getMonth() + 1).toString().padStart(2, "0");
-  const day = today.getDate().toString().padStart(2, "0");
-  const end_date = `${year}${month}${day}2359`;
-
-  const fiveDaysAgo = new Date(today);
-  fiveDaysAgo.setDate(today.getDate() - 30);
-  const fiveDaysAgoYear = fiveDaysAgo.getFullYear();
-  const fiveDaysAgoMonth = (fiveDaysAgo.getMonth() + 1).toString().padStart(2, "0");
-  const fiveDaysAgoDay = fiveDaysAgo.getDate().toString().padStart(2, "0");
-  const start_date = `${fiveDaysAgoYear}${fiveDaysAgoMonth}${fiveDaysAgoDay}0000`;
   const HRBRData = async (deviceId) => {
     try {
       const response = await axios.get(
-        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=D&start_date=${start_date}&end_date=${end_date}`,
+        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=D&start_date=${api_timestamp.getOneMonthAgo()}&end_date=${api_timestamp.endTime}`,
         { headers: { Authorization: token } }
       );
       const response2 = await axios.get(`http://api.hillntoe.com:7810/api/config/device/radar/info?device_id=${deviceId}`,
@@ -74,13 +63,7 @@ function ChartComponentM2(props) {
 
 
 
-  // 차트 Label function
   useEffect(() => {
-    // const fetchAllData = async () => {
-    //   await Promise.all(deviceIds.map((value) => HRBRData(value)));
-    // };
-
-    // fetchAllData();
     HRBRData(props.dropDown)
   }, [props.dropDown]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -88,6 +71,7 @@ function ChartComponentM2(props) {
     fetchData(timestamp);
   }, [timestamp]);
 
+  // 차트라벨 포멧
   const formattedLabels = chartdata.map((data) => {
     const dateObject = new Date(data);
     const month = (dateObject.getMonth() + 1).toString().padStart(2, '0'); // 월을 두 자리로 만들기
@@ -97,12 +81,13 @@ function ChartComponentM2(props) {
   });
 
 
+
   const data = {
     labels: formattedLabels,
 
     datasets: [
       {
-        label: "심박수",
+        label: "  심박수   ",
         data: AvgHRData,
         fill: false,
         borderColor: "#d60225",
@@ -110,7 +95,7 @@ function ChartComponentM2(props) {
         yAxisID: "y1",
       },
       {
-        label: "호흡수",
+        label: "  호흡수",
         data: AvgBRData,
         fill: false,
         borderColor: "#0041b9",
@@ -188,7 +173,7 @@ function ChartComponentM2(props) {
 
   return (
     <div style={{ width: "694px", height: "240px", margin: "auto" }}>
-      <Line type="line" data={data} options={chartOptions} />
+       {AvgHRData.length || AvgBRData.length > 0 ? (<Line data={data} options={chartOptions} />) : <div style={{fontSize:'18px',fontWeight:500,lineHeight:11}}>감지된 데이터가 없습니다</div>}
     </div>
   );
 }

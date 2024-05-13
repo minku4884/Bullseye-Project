@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import LeftImage from "/HillnToe/hillntoe/src/asset/leftImg.png";
-import RightImage from "/HillnToe/hillntoe/src/asset/rightImg.png";
-import "./Noti.css";
+import LeftImage from "../asset/img/leftImg.png";
+import RightImage from "../asset/img/rightImg.png";
+import "../styles/Noti.css";
 
 function Noti() {
   const [userName, setUserName] = useState("");
@@ -12,7 +12,6 @@ function Noti() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isSearchByDate, setIsSearchByDate] = useState(false);
-
   const token = sessionStorage.getItem("authorizeKey");
 
   const accountInfo = async () => {
@@ -115,7 +114,7 @@ function Noti() {
   };
 
   //paging system
-  const alarmsPerPage =7;
+  const alarmsPerPage = 7;
   const indexOfLastAlarm = currentPage * alarmsPerPage;
   const indexOfFirstAlarm = indexOfLastAlarm - alarmsPerPage;
   const totalPages = Math.ceil(alarmInfo.length / alarmsPerPage);
@@ -363,6 +362,7 @@ function Noti() {
           </button>
         </div>
       </div>
+      
     </div>
   );
 }

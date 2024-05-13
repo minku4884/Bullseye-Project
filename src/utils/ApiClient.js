@@ -1,4 +1,3 @@
-import React from 'react';
 import axios from 'axios';
 
 export const api_method = {
@@ -8,8 +7,6 @@ export const api_method = {
 }
 
 class ApiClient {
-    //baseUrl = "https://localhost:44305";
-    //baseUrl = "https://localhost:5001";
     //baseUrl = "https://192.168.0.103:5001";
     baseUrl = "http://api.hillntoe.com:7810";
     headers = {
