@@ -10,15 +10,11 @@ function MainContents(props) {
   const [loading, setLoading] = useState(false);
   const [alarmInfo, setAlarmInfo] = useState([]);
   const [timestamp, setTimestamp] = useState(0);
-  const [timestampList, setTimestampList] = useState([]);
-  const [timeArr, setTimeArr] = useState([]);
   const [dataArr, setDataArr] = useState([]);
   const [status, setStatus] = useState([]);
   const [currentPeriod, setCurrentPeriod] = useState("day");
   const [TotalStatusData, setTotalStatusData] = useState([]);
   let [fall, setFall] = useState([]);
-  let [stateArray, setStateArray] = useState([]);
-  let [fallArray, setFallArray] = useState([]);
   let [exist, setExist] = useState([]);
   const [StartDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -58,19 +54,23 @@ function MainContents(props) {
         );
         
         const data = response.data;
-        console.log(data)
+        data.map((value)=>{exist.push(value.datas[6].data_value)})
+        data.map((value)=>{fall.push(value.datas[8].data_value)})
 
 
       }
+
 
     } catch (error) {
       console.error(error);
     }
   };
+  
   // 재실 패턴 감지 일,주,월 버튼 요청 로직 API
   const fetchTimeTotalData = async () => {
     try {
       const arr = [];
+      const arr1 = [];
       for (const deviceId of props.deviceId) {
         let startDate, endDate;
         let acqType = "H";
@@ -83,7 +83,7 @@ function MainContents(props) {
           endDate = api_timestamp.endTime;
         } else if (currentPeriod === "month") {
           startDate = api_timestamp.getOneMonthAgo()
-          endDate = api_timestamp.endTime;          console.log(startDate, endDate)
+          endDate = api_timestamp.endTime;
         }
         const response = await axios.get(
           `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=${acqType}&start_date=${startDate}&end_date=${endDate}`,
@@ -100,6 +100,8 @@ function MainContents(props) {
       console.error(error);
     }
   };
+
+  console.log(dataArr)
   // 최근 알람 함수 API
   const fetchRecentAlarmData = async () => {
 
@@ -124,7 +126,6 @@ function MainContents(props) {
 
 
   //==============================================LOGIC============================================================================ 
-  
   // 재실 패턴 일 주 월 버튼함수
   const handleButtonClick = (period) => {
     setCurrentPeriod(period);
@@ -137,15 +138,6 @@ function MainContents(props) {
     return formattedDate;
   };
 
-    // 컴포넌트가 마운트 시 localStorage에서 데이터를 불러옴
-  useEffect(() => {
-    let storedExist = JSON.parse(localStorage.getItem("exist")) || [];
-    let storedFall = JSON.parse(localStorage.getItem("fall")) || [];
-    setExist(storedExist);
-    setFall(storedFall);
-
-    // ... (나머지 useEffect 코드)
-  }, []);
 
   // 재실 및 낙상정보 폴링 호출
   useEffect(() => {
@@ -166,17 +158,6 @@ function MainContents(props) {
   }, []);
 
 
-  // 연구 대상
-  // let Lexist = JSON.parse(localStorage.getItem("exist")) || [];
-  // let Lfall = JSON.parse(localStorage.getItem("fall")) || [];
-  // let existData = Lexist.slice(-60).reverse() 
-  // let fallData = Lfall.slice(-60).reverse()
-  // console.log(Lfall)
-  // console.log(fallData)
-  // let sumFallExistData = 0;
-  // for(let i =0; i < existData.length; i++){
-  //   sumFallExistData += exist[i] + fallData[i]
-  // }
 
 
 
