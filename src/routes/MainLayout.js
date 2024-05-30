@@ -54,8 +54,8 @@ const MainLayout = () => {
 
   // 메뉴를 클릭할 때의 처리 함수
   const handleMenuClick = (key) => {
-    setClickBtn(key);
-    navigate(key);
+      setClickBtn(key);
+      navigate(key);
   };
 
   return (

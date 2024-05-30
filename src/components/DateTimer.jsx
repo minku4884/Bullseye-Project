@@ -14,7 +14,7 @@ function DateTimer() {
 
     // clean-up function
     return () => clearInterval(intervalId);
-  }, []); // Empty dependency array means this effect runs only once, similar to componentDidMount
+  }, []); 
   
   return (
     <div className="Header-container" style={{ borderBottom: 'none' }}>

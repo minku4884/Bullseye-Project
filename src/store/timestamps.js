@@ -17,6 +17,7 @@ class API_timestamp {
     this.period = this.hours >= 12 ? "PM" : "AM";
     this.formattedHours = this.hours > 12 ? String(this.hours - 12).padStart(2, "0") : this.hours;
     this.timeForm = `${this.year}.${this.month}.${this.day}(${this.dayOfWeek}) ${this.period} ${this.formattedHours}:${this.minutes}`;
+    this.timeForm1 = `${this.year}.${this.month}.${this.day}(${this.dayOfWeek}) ${this.period} ${this.formattedHours}:${this.minutes}:${this.seconds}`
     this.ymdForm = `${this.year}.${this.month}.${this.day}`
     this.startTime1 = `${this.year}${this.month}${this.day}0000`
     this.ChartTime1 = `${this.year}${this.month}${this.day}${this.hours}00`
@@ -62,6 +63,7 @@ class API_timestamp {
     const days = ["일", "월", "화", "수", "목", "금", "토"];
     return days[dayIndex];
   }
+
 }
 
 export default API_timestamp;

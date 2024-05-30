@@ -17,7 +17,6 @@ import CV_Status_0 from "../asset/img/CV_Status_0.png";
 import CV_Status_1 from "../asset/img/CV_Status_1.png";
 import CV_Fall from "../asset/img/CV_Fall.png";
 import ApiClient, { api_method } from "../utils/ApiClient";
-import { fetchDeviceInfo } from "../store/deviceInfo";
 
 function DeviceList() {
   const [deviceInfo, setDeviceInfo] = useState([]);
@@ -52,11 +51,31 @@ function DeviceList() {
       console.error("Error fetching device info:", error);
     }
   };
+  // 장치 목록 Egg용임!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // const fetchDeviceCountInfo = async (selectedDevice) => {
+  //   try {
+  //     const response = await client.RequestAsync(
+  //       api_method.get,
+  //       `/api/acqdata/count?device_id=${selectedDevice}&acq_type=E&count=1`,
+  //       null,
+  //       null,
+  //       token
+  //     );
+  //     if (response?.status === 200) {
+  //       // API 렉시컬 밖 호출
+  //     } else {
+  //       throw new Error(`Failed to fetch device info (${response?.status})`);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching device info:", error);
+  //   }
+  // };
   // 각 장치 모달창 데이터 표시 API(로직 포함) 
   const deviceModalData = () => {
     if (deviceData.length > 0) {
-      console.log(deviceType, deviceData[deviceData.length - 1]);
       const deviceDataStatus = deviceData[deviceData.length - 1].data_value;
+      // console.log(deviceDataStatus)
+      // FV
       if (deviceType === 14201) {
         if (
           deviceDataStatus.includes("VITAL") &&
@@ -73,7 +92,8 @@ function DeviceList() {
         } else {
           setFVStateImg(FV_Status_0);
         }
-      } else if (deviceType == (14101)) {
+        // CV
+      } else if (deviceType == (14001)) {
         if (deviceDataStatus.includes("READY") == true) {
           setFVStateImg(CV_Status_1);
         } else if (deviceDataStatus.includes("FALL" == true)) {
@@ -81,7 +101,12 @@ function DeviceList() {
         } else {
           setFVStateImg(CV_Status_0);
         }
+        // 에그
+      } else if (deviceType == 14901) {
+        // console.log(deviceData)
       }
+        // Egg
+
       if ((deviceDataStatus.includes("VITAL") || deviceDataStatus.includes("READY")) === true) {
         setStateImg(<img src={ReadyImg} alt="ReadyImg" />);
         setFVHRData(
@@ -104,13 +129,14 @@ function DeviceList() {
         setFVBRData("--:--");
       }
     }
+    
   }
   // 클릭한 모듈 디바이스 데이터 ID API
   const clickDeviceHandler = async (deviceId) => {
     setSelectedDevice(deviceId);
     setTimeout(() => {
       setShowModal(true);
-    }, 600);
+    }, 650);
 
     try {
       const deviceDataResponse = await client.RequestAsync(
@@ -145,15 +171,52 @@ function DeviceList() {
       console.error("Error fetching device data:", error);
     }
   };
+
+
+
+  const startPolling = () => {
+    const interval = setInterval(async () => {
+      // fetchDeviceCountInfo(selectedDevice);
+      if (selectedDevice) {
+        try {
+          const deviceDataResponse = await client.RequestAsync(
+            api_method.get,
+            `/api/acqdata/lastest?device_id=${selectedDevice}`,
+            null,
+            null,
+            token
+          );
+          if (deviceDataResponse?.status === 200) {
+            const selectedDeviceInfo = deviceDataResponse.data.find(
+              (device) => device.device_id === selectedDevice
+            );
+            setDeviceData(selectedDeviceInfo.datas);
+          } else {
+            throw new Error(`Failed to fetch device data (${deviceDataResponse?.status})`);
+          }
+        } catch (error) {
+          console.error("Error fetching device data:", error);
+        }
+      }
+    }, 5000); // 5초마다 데이터 업데이트
+
+    return () => clearInterval(interval); // 클린업 함수 반환
+  };
+
   // 첫 렌더시 비동기 함수 장치 정보 API 호출
   useEffect(() => {
     fetchDeviceInfo();
+    
   }, []);
   // 첫 렌더시 모달 데이터 정보 API 호출
   useEffect(() => {
     deviceModalData();
   }, [deviceData, deviceType]);
 
+  useEffect(() => {
+    const stopPolling = startPolling();
+    return () => stopPolling();
+  }, [selectedDevice]);
   // 장치 목록 렌더함수(deviceID만큼 생성 및 is_enable로 불량장치 구별)
   const renderDeviceRectangles = () => {
     if (deviceIds.length === 0) {
@@ -191,7 +254,8 @@ function DeviceList() {
           color: `${
             deviceInfo[index].is_enabled === 1 ? "#191919" : "#ffffff"
           }`,
-          overflow: "hidden",
+          fontSize : '12px',
+          wordBreak: "keep-all",
           margin: "9px",
         }}
       >
@@ -423,7 +487,7 @@ function DeviceList() {
                 }
               </h4>
               {/* CV */}
-              {deviceType === 14101 && (
+              {deviceType === 14001 && (
                 <>
                   {/* CV MAIN */}
                   {/* CV TITLE */}
