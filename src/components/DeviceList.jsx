@@ -74,8 +74,9 @@ function DeviceList() {
   const deviceModalData = () => {
     if (deviceData.length > 0) {
       const deviceDataStatus = deviceData[deviceData.length - 1].data_value;
-      // console.log(deviceDataStatus)
+      console.log(deviceDataStatus)
       // FV
+      console.log(deviceDataStatus)
       if (deviceType === 14201) {
         if (
           deviceDataStatus.includes("VITAL") &&
