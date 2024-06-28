@@ -19,7 +19,7 @@ import NotificationImg_white from "../asset/img/Notification_white.png";
 import Dashboard_gray from "../asset/img/Dashborad_gray.png";
 import Dashboard_white from "../asset/img/Dashboard_white.png";
 import Logout from "../asset/img/Logout.png";
-import mainLogo from "../asset/img/logo_pwc.png";
+import mainLogo from "../asset/img/Bullseye logo_.png";
 import { useState, useEffect } from "react";
 
 const { Header, Sider, Content } = Layout;
@@ -71,7 +71,7 @@ const MainLayout = () => {
         }}
       >
         {/* 로고 이미지 */}
-        <img src={mainLogo} alt="mainlogo" style={{ width: "80px" }} />
+        <img src={mainLogo} alt="mainlogo" style={{ width: "200px",marginLeft:'10px'}} />
 
         <div className="d-flex align-items-center">
           {/* 날짜 타이머 컴포넌트 */}

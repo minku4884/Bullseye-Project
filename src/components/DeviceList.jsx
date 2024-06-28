@@ -25,9 +25,13 @@ function DeviceList() {
   const [deviceType, setDeviceType] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [stateImg, setStateImg] = useState(null);
+  const [eggStateImg, setEggStateImg] = useState(null);
   const [FVHRData, setFVHRData] = useState(null);
   const [FVBRData, setFVBRData] = useState(null);
+  const [eggHRData, setHREggData] = useState(null);
+  const [eggBRData, setBREggData] = useState(null);
   const [FVStateImg, setFVStateImg] = useState(CV_Status_1);
+  const [lastFetchData, setLastFetchData] = useState([]);
   const client = new ApiClient();
   const token = sessionStorage.getItem("authorizeKey");
 
@@ -51,32 +55,49 @@ function DeviceList() {
       console.error("Error fetching device info:", error);
     }
   };
-  // 장치 목록 Egg용임!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // const fetchDeviceCountInfo = async (selectedDevice) => {
-  //   try {
-  //     const response = await client.RequestAsync(
-  //       api_method.get,
-  //       `/api/acqdata/count?device_id=${selectedDevice}&acq_type=E&count=1`,
-  //       null,
-  //       null,
-  //       token
-  //     );
-  //     if (response?.status === 200) {
-  //       // API 렉시컬 밖 호출
-  //     } else {
-  //       throw new Error(`Failed to fetch device info (${response?.status})`);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching device info:", error);
-  //   }
-  // };
-  // 각 장치 모달창 데이터 표시 API(로직 포함) 
+
+  const fetchDeviceData = async () => {
+    let promises = deviceInfo.map((device) =>
+      axios.get(
+        `http://api.hillntoe.com:7810/api/acqdata/lastest?device_id=${device.device_id}`,
+        {
+          headers: { Authorization: token },
+        }
+      )
+    );
+    Promise.all(promises)
+      .then((responses) => {
+        const allDeviceData = responses.map((response) => response.data);
+        setLastFetchData(allDeviceData);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  useEffect(() => {
+    fetchDeviceInfo();
+    fetchDeviceData();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDeviceInfo();
+      fetchDeviceData();
+    }, 5000); // 5초마다 데이터 업데이트
+
+    return () => clearInterval(interval); // 컴포넌트가 언마운트될 때 타이머 정리
+  }, [lastFetchData, deviceInfo]);
+
+  let ConnectedCount = 0;
+  lastFetchData.find((value) => {
+    value.length == 1 ? ConnectedCount++ : (ConnectedCount += 0);
+  });
+
   const deviceModalData = () => {
     if (deviceData.length > 0) {
       const deviceDataStatus = deviceData[deviceData.length - 1].data_value;
-      console.log(deviceDataStatus)
       // FV
-      console.log(deviceDataStatus)
       if (deviceType === 14201) {
         if (
           deviceDataStatus.includes("VITAL") &&
@@ -94,7 +115,7 @@ function DeviceList() {
           setFVStateImg(FV_Status_0);
         }
         // CV
-      } else if (deviceType == (14001)) {
+      } else if (deviceType == 14001) {
         if (deviceDataStatus.includes("READY") == true) {
           setFVStateImg(CV_Status_1);
         } else if (deviceDataStatus.includes("FALL" == true)) {
@@ -104,11 +125,28 @@ function DeviceList() {
         }
         // 에그
       } else if (deviceType == 14901) {
-        // console.log(deviceData)
+        if (deviceDataStatus.split(",")[13] == 0) {
+          setFVStateImg(CV_Status_0);
+        } else {
+          setFVStateImg(CV_Status_1);
+        }
       }
-        // Egg
+      // Egg
 
-      if ((deviceDataStatus.includes("VITAL") || deviceDataStatus.includes("READY")) === true) {
+      if (deviceDataStatus.split(",")[13] == 3) {
+        setEggStateImg(<img src={ReadyImg} alt="ReadyImg" />);
+        setHREggData(deviceDataStatus.split(",")[18]);
+        setBREggData(deviceDataStatus.split(",")[17]);
+      } else {
+        setEggStateImg(<img src={DisableImg} alt="DisableImg" />);
+        setHREggData("--");
+        setBREggData("--");
+      }
+
+      if (
+        (deviceDataStatus.includes("VITAL") ||
+          deviceDataStatus.includes("READY")) === true
+      ) {
         setStateImg(<img src={ReadyImg} alt="ReadyImg" />);
         setFVHRData(
           deviceDataStatus
@@ -122,58 +160,97 @@ function DeviceList() {
         );
       } else if (deviceDataStatus.includes("MOVING")) {
         setStateImg(<img src={MovingImg} alt="MovingImg" />);
-        setFVHRData("--:--");
-        setFVBRData("--:--");
+        setFVHRData("--");
+        setFVBRData("--");
       } else {
         setStateImg(<img src={DisableImg} alt="DisableImg" />);
-        setFVHRData("--:--");
-        setFVBRData("--:--");
+        setFVHRData("--");
+        setFVBRData("--");
       }
-    }
-    
-  }
-  // 클릭한 모듈 디바이스 데이터 ID API
-  const clickDeviceHandler = async (deviceId) => {
-    setSelectedDevice(deviceId);
-    setTimeout(() => {
-      setShowModal(true);
-    }, 650);
-
-    try {
-      const deviceDataResponse = await client.RequestAsync(
-        api_method.get,
-        `/api/acqdata/lastest?device_id=${deviceId}`,
-        null,
-        null,
-        token
-      );
-      const deviceTypeResponse = await client.RequestAsync(
-        api_method.get,
-        `/api/config/device/info?device_id=${deviceId}`,
-        null,
-        null,
-        token
-      );
-      if (
-        deviceDataResponse?.status === 200 &&
-        deviceTypeResponse?.status === 200
-      ) {
-        const selectedDeviceInfo = deviceDataResponse.data.find(
-          (device) => device.device_id === deviceId
-        );
-        setDeviceData(selectedDeviceInfo.datas);
-        setDeviceType(deviceTypeResponse.data[0].device_type);
-      } else {
-        throw new Error(
-          `Failed to fetch device data (${deviceDataResponse?.status}) or device type (${deviceTypeResponse?.status})`
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching device data:", error);
     }
   };
+  // 클릭한 모듈 디바이스 데이터 ID API
+  // const clickDeviceHandler = async (deviceId) => {
+  //   setSelectedDevice(deviceId);
+  //   setTimeout(() => {
+  //     setShowModal(true);
+  //   }, 650);
 
+  //   try {
+  //     const deviceDataResponse = await client.RequestAsync(
+  //       api_method.get,
+  //       `/api/acqdata/lastest?device_id=${deviceId}`,
+  //       null,
+  //       null,
+  //       token
+  //     );
+  //     const deviceTypeResponse = await client.RequestAsync(
+  //       api_method.get,
+  //       `/api/config/device/info?device_id=${deviceId}`,
+  //       null,
+  //       null,
+  //       token
+  //     );
+  //     if (
+  //       deviceDataResponse?.status === 200 &&
+  //       deviceTypeResponse?.status === 200
+  //     ) {
+  //       const selectedDeviceInfo = deviceDataResponse.data.find(
+  //         (device) => device.device_id === deviceId
+  //       );
+  //       setDeviceData(selectedDeviceInfo.datas);
+  //       setDeviceType(deviceTypeResponse.data[0].device_type);
+  //     } else {
+  //       throw new Error(
+  //         `Failed to fetch device data (${deviceDataResponse?.status}) or device type (${deviceTypeResponse?.status})`
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching device data:", error);
+  //   }
+  // };
+  const clickDeviceHandler = useCallback(
+    async (deviceId) => {
+      setSelectedDevice(deviceId);
+      setTimeout(() => {
+        setShowModal(true);
+      }, 650);
 
+      try {
+        const deviceDataResponse = await client.RequestAsync(
+          api_method.get,
+          `/api/acqdata/lastest?device_id=${deviceId}`,
+          null,
+          null,
+          token
+        );
+        const deviceTypeResponse = await client.RequestAsync(
+          api_method.get,
+          `/api/config/device/info?device_id=${deviceId}`,
+          null,
+          null,
+          token
+        );
+        if (
+          deviceDataResponse?.status === 200 &&
+          deviceTypeResponse?.status === 200
+        ) {
+          const selectedDeviceInfo = deviceDataResponse.data.find(
+            (device) => device.device_id === deviceId
+          );
+          setDeviceData(selectedDeviceInfo.datas);
+          setDeviceType(deviceTypeResponse.data[0].device_type);
+        } else {
+          throw new Error(
+            `Failed to fetch device data (${deviceDataResponse?.status}) or device type (${deviceTypeResponse?.status})`
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching device data:', error);
+      }
+    },
+    [token] // 종속성 배열에 token을 추가합니다.
+  );
 
   const startPolling = () => {
     const interval = setInterval(async () => {
@@ -193,7 +270,9 @@ function DeviceList() {
             );
             setDeviceData(selectedDeviceInfo.datas);
           } else {
-            throw new Error(`Failed to fetch device data (${deviceDataResponse?.status})`);
+            throw new Error(
+              `Failed to fetch device data (${deviceDataResponse?.status})`
+            );
           }
         } catch (error) {
           console.error("Error fetching device data:", error);
@@ -205,10 +284,7 @@ function DeviceList() {
   };
 
   // 첫 렌더시 비동기 함수 장치 정보 API 호출
-  useEffect(() => {
-    fetchDeviceInfo();
-    
-  }, []);
+
   // 첫 렌더시 모달 데이터 정보 API 호출
   useEffect(() => {
     deviceModalData();
@@ -234,7 +310,14 @@ function DeviceList() {
         </div>
       );
     }
-    return deviceIds.map((deviceId, index) => (
+
+    // deviceInfo 배열을 device_type 기준으로 내림차순 정렬
+    const sortedDeviceInfo = [...deviceInfo].sort((a, b) => b.device_type - a.device_type);
+
+    // 정렬된 순서에 맞게 deviceIds 배열도 재정렬
+    const sortedDeviceIds = sortedDeviceInfo.map(info => info.device_id);
+
+    return sortedDeviceIds.map((deviceId, index) => (
       <div
         className="device-rectangle"
         key={deviceId}
@@ -243,7 +326,7 @@ function DeviceList() {
           width: "76px",
           height: "76px",
           backgroundColor: `${
-            deviceInfo[index].is_enabled === 1 ? "#d2e6fa" : "#d60225"
+            sortedDeviceInfo[index].is_enabled === 1 ? "#d2e6fa" : "#d60225"
           }`,
           borderRadius: "9px",
           cursor: "pointer",
@@ -253,26 +336,20 @@ function DeviceList() {
           fontWeight: "bold",
           position: "relative",
           color: `${
-            deviceInfo[index].is_enabled === 1 ? "#191919" : "#ffffff"
+            sortedDeviceInfo[index].is_enabled === 1 ? "#191919" : "#ffffff"
           }`,
-          fontSize : '12px',
+          fontSize: "12px",
           wordBreak: "keep-all",
           margin: "9px",
         }}
       >
-        {deviceInfo[index].device_name}
+        {sortedDeviceInfo[index].device_name}
       </div>
     ));
   };
 
   // 장치 목록의 device_id 배열 생성
   const deviceIds = deviceInfo.map((device) => device.device_id);
-  const errorDeviceCount = deviceInfo.reduce((count, device) => {
-    if (device.is_enabled === 1) {
-      return count + 1;
-    }
-    return count;
-  }, 0);
 
   return (
     <div className="MainContents">
@@ -345,119 +422,125 @@ function DeviceList() {
               장치 정보
             </div>
             <div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  padding: "20px 0px",
-                  borderBottom: "1px solid #ededed",
-                }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "#ededed",
-                    margin: "0px 0px 0px 58px",
-                    borderRadius: "4px",
-                  }}
-                ></div>
-                <div
-                  style={{
-                    marginLeft: "94px",
-                    fontWeight: "500",
-                    fontSize: "18px",
-                  }}
-                >
-                  전체 장치 수
+              {ConnectedCount > 0 ? (
+                <div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      padding: "20px 0px",
+                      borderBottom: "1px solid #ededed",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        backgroundColor: "#ededed",
+                        margin: "0px 0px 0px 58px",
+                        borderRadius: "4px",
+                      }}
+                    ></div>
+                    <div
+                      style={{
+                        marginLeft: "94px",
+                        fontWeight: "500",
+                        fontSize: "18px",
+                      }}
+                    >
+                      전체 장치 수
+                    </div>
+                    <div
+                      style={{
+                        marginLeft: "160px",
+                        fontWeight: "500",
+                        fontSize: "19px",
+                      }}
+                    >
+                      {deviceInfo.length} 개
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      padding: "20px 0px",
+                      borderBottom: "1px solid #ededed",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        backgroundColor: "#d2e6fa",
+                        margin: "0px 0px 0px 58px",
+                        borderRadius: "4px",
+                      }}
+                    ></div>
+                    <div
+                      style={{
+                        marginLeft: "94px",
+                        fontWeight: "500",
+                        fontSize: "18px",
+                      }}
+                    >
+                      정상 장치 수
+                    </div>
+                    <div
+                      style={{
+                        marginLeft: "160px",
+                        fontWeight: "500",
+                        fontSize: "19px",
+                      }}
+                    >
+                      {ConnectedCount} 개
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      padding: "20px 0px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        backgroundColor: "#d60225",
+                        margin: "0px 0px 0px 58px",
+                        borderRadius: "4px",
+                      }}
+                    ></div>
+                    <div
+                      style={{
+                        marginLeft: "94px",
+                        fontWeight: "500",
+                        fontSize: "18px",
+                      }}
+                    >
+                      불량 장치 수
+                    </div>
+                    <div
+                      style={{
+                        marginLeft: "160px",
+                        fontWeight: "500",
+                        fontSize: "19px",
+                      }}
+                    >
+                      {deviceInfo.length - ConnectedCount} 개
+                    </div>
+                  </div>
                 </div>
-                <div
-                  style={{
-                    marginLeft: "160px",
-                    fontWeight: "500",
-                    fontSize: "19px",
-                  }}
-                >
-                  {deviceIds.length} 개
-                </div>
-              </div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  padding: "20px 0px",
-                  borderBottom: "1px solid #ededed",
-                }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "#d2e6fa",
-                    margin: "0px 0px 0px 58px",
-                    borderRadius: "4px",
-                  }}
-                ></div>
-                <div
-                  style={{
-                    marginLeft: "94px",
-                    fontWeight: "500",
-                    fontSize: "18px",
-                  }}
-                >
-                  정상 장치 수
-                </div>
-                <div
-                  style={{
-                    marginLeft: "160px",
-                    fontWeight: "500",
-                    fontSize: "19px",
-                  }}
-                >
-                  {errorDeviceCount} 개
-                </div>
-              </div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  padding: "20px 0px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    backgroundColor: "#d60225",
-                    margin: "0px 0px 0px 58px",
-                    borderRadius: "4px",
-                  }}
-                ></div>
-                <div
-                  style={{
-                    marginLeft: "94px",
-                    fontWeight: "500",
-                    fontSize: "18px",
-                  }}
-                >
-                  불량 장치 수
-                </div>
-                <div
-                  style={{
-                    marginLeft: "160px",
-                    fontWeight: "500",
-                    fontSize: "19px",
-                  }}
-                >
-                  {deviceIds.length - errorDeviceCount} 개
-                </div>
-              </div>
+              ) : (
+                <div style={{fontSize:'18px',fontWeight:'500',textAlign:'center',lineHeight:'180px'}}>장치 정보를 불러오고 있습니다.</div>
+              )}
             </div>
           </div>
         </Row>
@@ -495,25 +578,20 @@ function DeviceList() {
                   <h5>HRS_R8A_E_CV</h5>
                   {/* CV STATE IMG */}
                   <div className="STATE-container">
-                    {deviceData.length > 0 ? (stateImg
-                    ) : null}
+                    {deviceData.length > 0 ? stateImg : null}
                   </div>
                   {/* CV HRBR-CONTAINER */}
                   {deviceData && deviceData.length > 0 && (
                     <div className="HR-BR-container">
                       <div className="HR-container">
                         <img src={HRImg} alt="HRImage" className="HRimage" />
-                        <span>
-                          {FVHRData}
-                        </span>
+                        <span>{FVHRData}</span>
                         <span className="bpm-title">BPM</span>
                       </div>
 
                       <div className="BR-container">
                         <img src={BRImg} alt="BRImage" className="BRimage" />
-                        <span>
-                          {FVBRData}
-                        </span>
+                        <span>{FVBRData}</span>
                         <span className="bpm-title">BPM</span>
                       </div>
                     </div>
@@ -526,6 +604,7 @@ function DeviceList() {
                   {/* FV */}
                   {/* FV MAIN */}
                   {/* FV TITLE */}
+                  {console.log(deviceData)}
                   <h5>HRS_R8A_E_FV</h5>
                   {/* FV STATE IMG */}
                   <div className="STATE-container">{stateImg}</div>
@@ -541,6 +620,34 @@ function DeviceList() {
                       <div className="BR-container">
                         <img src={BRImg} alt="BRImage" className="BRimage" />
                         <span>{FVBRData}</span>
+                        <span className="bpm-title">BPM</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {deviceType === 14901 && (
+                <>
+                {console.log(deviceData)}
+                {/* FV */}
+                  {/* FV MAIN */}
+                  {/* FV TITLE */}
+                  <h5>탁상형 DEVICE</h5>
+                  {/* FV STATE IMG */}
+                  <div className="STATE-container">{eggStateImg}</div>
+                  {/* FV HRBR-CONTAINER */}
+                  {deviceData && deviceData.length > 0 && (
+                    <div className="HR-BR-container">
+                      <div className="HR-container">
+                        <img src={HRImg} alt="HRImage" className="HRimage" />
+                        <span style={{display:'inline-block', width:'52px'}}>{eggHRData}</span>
+                        <span className="bpm-title">BPM</span>
+                      </div>
+
+                      <div className="BR-container">
+                        <img src={BRImg} alt="BRImage" className="BRimage" />
+                        <span style={{display:'inline-block', width:'52px'}}>{eggBRData}</span>
                         <span className="bpm-title">BPM</span>
                       </div>
                     </div>

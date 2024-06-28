@@ -2,25 +2,51 @@ import { useEffect } from "react";
 import axios from "axios";
 import React, { useState } from "react";
 import { Line } from "react-chartjs-2";
-import API_timestamp from "../store/timestamps";
-
+import Loading from "../asset/img/LoadingCircle.gif";
 function ChartComponent2(props) {
-  const api_timestamp = new API_timestamp()
   const token = sessionStorage.getItem("authorizeKey");
   const [AvgHRData, setAvgHRDate] = useState([]);
   const [AvgBRData, setAvgBRData] = useState([]);
   const [timestamp, setTimestamp] = useState([]);
   const [chartdata, setChartData] = useState([]);
   const [deviceType, setDeviceType] = useState(0)
+  const [timeoutReached, setTimeoutReached] = useState(false);
   const maxDataValue = Math.max(...[...AvgHRData, ...AvgBRData]);
   const maxDataValueWithPadding = Math.ceil(maxDataValue * 1.29);
 
-   // 1 day ago API
+  const generateHourlyLabels = () => {
+    const labels = [];
+    const currentHour = new Date().getHours();
+  
+    for (let i = 23; i >= 0; i--) {
+      const hour = (currentHour - i + 24) % 24; // 시간이 [0, 23] 범위 내에 있도록 보장
+      labels.push(`${hour}시`);
+    }
+  
+    return labels;
+  };
+   // SEARCH YYYYMMDDHHmm
+   const today = new Date();
+   const year = today.getFullYear();
+   const month = (today.getMonth() + 1).toString().padStart(2, "0");
+   const day = today.getDate().toString().padStart(2, "0");
+   const Hours = today.getHours().toString().padStart(2, "0");
+   const end_date = `${year}${month}${day}${Hours}00`;
+   
+   
+   // Calculate start_date (1 day ago)
+   const yesterday = new Date(today);
+   yesterday.setDate(today.getDate() - 1);
+   const start_year = yesterday.getFullYear();
+   const start_month = (yesterday.getMonth() + 1).toString().padStart(2, "0");
+   const start_day = yesterday.getDate().toString().padStart(2, "0");
+   const start_date = `${start_year}${start_month}${start_day}${Hours}00`;
+ 
   const HRBRData = async (deviceId) => {
     try {
       // 첫 번째 Axios 요청
       const response1 = await axios.get(
-        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=H&start_date=${api_timestamp.getOneDayAgo()}&end_date=${api_timestamp.ChartTime2}`,
+        `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=H&start_date=${start_date}&end_date=${end_date}`,
         { headers: { Authorization: token } }
       );
   
@@ -40,14 +66,19 @@ function ChartComponent2(props) {
         const devicedataType = deviceTypeResponse[0].deviceType;
         data.reverse();
         setTimestamp(data.map((value, index) => value.timestamp));
-        if (devicedataType === 14101) {
-          const avgHRValues = data.map((value) => value.datas[3].avg_value);
-          const avgBRValues = data.map((value) => value.datas[2].avg_value);
+        if (devicedataType === 14001) {
+          const avgHRValues = data.map((value) => value.datas[3].max_value);
+          const avgBRValues = data.map((value) => value.datas[2].max_value);
           setAvgHRDate(avgHRValues);
           setAvgBRData(avgBRValues);
         } else if (devicedataType === 14201) {
-          const avgHRValues = data.map((value) => value.datas[12].avg_value);
-          const avgBRValues = data.map((value) => value.datas[10].avg_value);
+          const avgHRValues = data.map((value) => value.datas[12].max_value);
+          const avgBRValues = data.map((value) => value.datas[10].max_value);
+          setAvgHRDate(avgHRValues);
+          setAvgBRData(avgBRValues);
+        } else if (devicedataType === 14901) {
+          const avgHRValues = data.map((value) => value.datas[18].max_value);
+          const avgBRValues = data.map((value) => value.datas[17].max_value);
           setAvgHRDate(avgHRValues);
           setAvgBRData(avgBRValues);
         }
@@ -84,12 +115,22 @@ function ChartComponent2(props) {
     fetchData(timestamp);
   }, [timestamp]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimeoutReached(true);
+    }, 10000); // 10초 타이머 설정
+
+    // 타이머 해제
+    return () => clearTimeout(timer);
+  }, []);
+
   const labels = chartdata.map(dateString => {
     const dateObj = new Date(dateString);
     const hours = dateObj.getHours().toString().padStart(2, '0'); // 시간을 2자리로 만듦
     const minutes = dateObj.getMinutes().toString().padStart(2, '0'); // 분을 2자리로 만듦
     return `${hours}:${minutes}`;
   });
+
 
 
   let data = {
@@ -180,13 +221,39 @@ function ChartComponent2(props) {
       },
     },
   };
+  const HRArr = AvgHRData.map(Number)
+  const BRArr = AvgBRData.map(Number)
+  function checkAllZeros(arr1, arr2) {
+    for (let idx in arr1) {
+      if (arr1[idx] !== 0 && arr2[idx] !== 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const allZeros = checkAllZeros(HRArr, BRArr);
+
+
 
 
 
   return (
     <div style={{ width: "694px", height: "240px", margin: "auto" }}>
-      {AvgHRData.length || AvgBRData.length > 0 ? (<Line data={data} options={chartOptions} />) : <div style={{fontSize:'18px',fontWeight:500,lineHeight:11}}>감지된 데이터가 없습니다</div>}
-    </div>
+    {allZeros ? (
+      timeoutReached ? (
+        <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: "200px" }}>
+          감지된 데이터가 없습니다
+        </div>
+      ) : (
+        <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: "200px" }}>
+          <img src={Loading} alt="loading" /> 데이터 불러오는 중···
+        </div>
+      )
+    ) : (
+      <Line data={data} options={chartOptions} />
+    )}
+  </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { Doughnut } from "react-chartjs-2";
 import { Line } from "react-chartjs-2";
@@ -7,6 +7,7 @@ import StatusFallComponent from "./StatusFallComponent";
 import ApiClient, { api_method } from "../utils/ApiClient";
 import API_timestamp from "../store/timestamps";
 import { useQuery } from "react-query";
+import LoadingCircle from "../asset/img/LoadingCircle.gif"
 function MainContents(props) {
   const client = new ApiClient();
   const api_timestamp = new API_timestamp();
@@ -14,14 +15,13 @@ function MainContents(props) {
   const [alarmInfo, setAlarmInfo] = useState([]);
   const [dataArr, setDataArr] = useState([]);
   const [status, setStatus] = useState([]);
-
+  const [SGraphData, setSGraphData] = useState([]);
+  const [FGraphData, setFGraphData] = useState([]);
   const [currentPeriod, setCurrentPeriod] = useState("day");
   const [TotalStatusData, setTotalStatusData] = useState([]);
   let [fall, setFall] = useState([]);
   let [exist, setExist] = useState([]);
-  const [StartDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [timeArray, setTimeArray] = useState(null);
+  let _ = require('lodash');
   const token = sessionStorage.getItem("authorizeKey");
 
   //==============================================API REQUSET============================================================================
@@ -44,61 +44,207 @@ function MainContents(props) {
     }
   };
 
-
   // 재실 상태 및 낙상 API
   const fetchStatusAndFallData = async () => {
     try {
-      for (const deviceId of props.deviceId) {
-        let today = new Date();
-        let year = today.getFullYear();
-        let month = (today.getMonth() + 1).toString().padStart(2, "0");
-        let day = today.getDate().toString().padStart(2, "0");
-        let hours = today.getHours().toString().padStart(2, "0");
-        let oneHours = (today.getHours() - 1).toString().padStart(2, "0");
-        let minutes = today.getMinutes().toString().padStart(2, "0");
-        let timeform = `${year}${month}${day}${hours}${minutes}`;
-        let oneAgotimeform = `${year}${month}${day}${oneHours}${minutes}`;
+      let today = new Date();
+      let year = today.getFullYear();
+      let month = (today.getMonth() + 1).toString().padStart(2, "0");
+      let day = today.getDate().toString().padStart(2, "0");
+      let hours = today.getHours().toString().padStart(2, "0");
+      let oneHours = (today.getHours() - 1).toString().padStart(2, "0");
+      let minutes = today.getMinutes().toString().padStart(2, "0");
+      let timeform = `${year}${month}${day}${hours}${minutes}`;
+      let oneAgotimeform = `${year}${month}${day}${oneHours}${minutes}`;
 
-        setStartDate(oneAgotimeform);
-        setEndDate(timeform);
-        const response = await axios.get(
-          `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=E&start_date=${oneAgotimeform}&end_date=${timeform}`,
-          { headers: { Authorization: token } }
-        );
+      // 모든 장치의 데이터를 병렬로 가져오기
+      const statuspromises = props.deviceId.map((deviceId) =>
+        axios
+          .get(
+            `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=E&start_date=${oneAgotimeform}&end_date=${timeform}`,
+            { headers: { Authorization: token } }
+          )
+          .then((response) =>
+            response.data.map((value) =>
+              value.datas.length == 9
+                ? value.datas[6].max_value
+                : value.datas.length == 13
+                ? value.datas[0].max_value
+                : 0
+            )
+          )
+          .catch((error) => {
+            console.error(`Error fetching data for device ${deviceId}:`, error);
+            return [];
+          })
+      );
 
-        const data = response.data;
+      const fallpromises = props.deviceId.map((deviceId) =>
+        axios
+          .get(
+            `http://api.hillntoe.com:7810/api/acqdata/section?device_id=${deviceId}&acq_type=E&start_date=${oneAgotimeform}&end_date=${timeform}`,
+            { headers: { Authorization: token } }
+          )
+          .then((response) =>
+            response.data.map((value) =>
+              value.datas.length == 9
+                ? value.datas[8].max_value
+                : value.datas.length == 13
+                ? value.datas[4].max_value
+                : 0
+            )
+          )
+          .catch((error) => {
+            console.error(`Error fetching data for device ${deviceId}:`, error);
+            return [];
+          })
+      );
 
-        // console.log(data)
+      // 모든 요청이 완료될 때까지 기다림
+      const statusresult = await Promise.all(statuspromises);
+      const fallresult = await Promise.all(fallpromises);
 
-        
+      setSGraphData(statusresult);
+      setFGraphData(fallresult);
 
-
-
-        //exist Logic
-        data.map((value) => {
-          if (value.datas.length == 9){
-            exist.push(value.datas[6].max_value)
-          } else if(value.datas.length == 13){
-            fall.push(value.datas[0].max_value)
-          }
-        });
-
-        data.map((value) => {
-          if (value.datas.length == 9){
-            fall.push(value.datas[8].data_value)
-          } else if(value.datas.length == 13){
-            fall.push(value.datas[4].max_value)
-          }
-        });
-
-      }
-
+      // 결과 배열로 설정
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching status and fall data:", error);
     }
   };
 
-  // console.log('exist:',exist, 'fall:',fall)
+  // const fetchStatusAndFallData2 = async () => {
+  //   try {
+  //     let today = new Date();
+  //     let year = today.getFullYear();
+  //     let month = (today.getMonth() + 1).toString().padStart(2, "0");
+  //     let day = today.getDate().toString().padStart(2, "0");
+  //     let hours = today.getHours().toString().padStart(2, "0");
+  //     let oneHours = (today.getHours() - 1).toString().padStart(2, "0");
+  //     let minutes = today.getMinutes().toString().padStart(2, "0");
+  //     let timeform = `${year}${month}${day}${hours}${minutes}`;
+  //     let oneAgotimeform = `${year}${month}${day}${oneHours}${minutes}`;
+
+  //     // 모든 장치의 데이터를 병렬로 가져오기
+  //     const statuspromises = props.deviceId.map((deviceId) =>
+  //       axios
+  //         .get(
+  //           `http://api.hillntoe.com:7810/api/acqdata/count?device_id=${deviceId}&acq_type=E&count=1`,
+  //           { headers: { Authorization: token } }
+  //         )
+  //         .then((response) =>
+  //           response.data.map((value) =>
+  //             value.datas.length == 9
+  //               ? value.datas[6].max_value
+  //               : value.datas.length == 13
+  //               ? value.datas[0].max_value
+  //               : 0
+  //           )
+  //         )
+  //         .catch((error) => {
+  //           console.error(`Error fetching data for device ${deviceId}:`, error);
+  //           return [];
+  //         })
+  //     );
+
+  //     const fallpromises = props.deviceId.map((deviceId) =>
+  //       axios
+  //         .get(
+  //           `http://api.hillntoe.com:7810/api/acqdata/count?device_id=${deviceId}&acq_type=E&count=1`,
+  //           { headers: { Authorization: token } }
+  //         )
+  //         .then((response) =>
+  //           response.data.map((value) =>
+  //             value.datas.length == 9
+  //               ? value.datas[8].max_value
+  //               : value.datas.length == 13
+  //               ? value.datas[4].max_value
+  //               : 0
+  //           )
+  //         )
+  //         .catch((error) => {
+  //           console.error(`Error fetching data for device ${deviceId}:`, error);
+  //           return [];
+  //         })
+  //     );
+
+  //     const statusresult = await Promise.all(statuspromises);
+  //     const fallresult = await Promise.all(fallpromises);
+      
+      
+  //     // 배열에 하나라도 1이 있는지 확인
+  //     const checkForOne = (array) => array.some(subArray => subArray.includes(1));
+      
+  //     // 각각의 결과에서 하나라도 1이 있는지 확인 후 1 또는 0 반환
+  //     const Sresult = checkForOne(statusresult) ? 1 : 0;
+  //     const Fresult = checkForOne(fallresult) ? 1 : 0;
+      
+  //     console.log(statusresult)
+  //     console.log(Sresult);
+  //     console.log(Fresult);
+
+  //     // 결과 배열로 설정
+  //   } catch (error) {
+  //     console.error("Error fetching status and fall data:", error);
+  //   }
+  // };
+
+  useEffect(() => {
+    // SGraphData 배열의 각 요소의 최대 길이를 찾습니다.
+    const maxLengthSGraphData = Math.max(
+      ...SGraphData.map((arr) => arr.length)
+    );
+    // FGraphData 배열의 각 요소의 최대 길이를 찾습니다.
+    const maxLengthFGraphData = Math.max(
+      ...FGraphData.map((arr) => arr.length)
+    );
+
+    // 배열을 최대 길이에 맞추어 0으로 채우는 함수를 정의합니다.
+    const padArray = (arr, length) => [
+      ...arr,
+      ...Array(length - arr.length).fill(0),
+    ];
+
+    // SGraphData를 합치는 배열을 생성합니다.
+    let combinedArrSGraphData = [];
+    for (let i = 0; i < SGraphData.length; i++) {
+      const paddedSGraphData = padArray(SGraphData[i], maxLengthSGraphData);
+      for (let j = 0; j < paddedSGraphData.length; j++) {
+        if (!combinedArrSGraphData[j]) {
+          combinedArrSGraphData[j] = 0;
+        }
+        if (paddedSGraphData[j] === 1) {
+          combinedArrSGraphData[j] = 1;
+        }
+      }
+    }
+
+    // FGraphData를 합치는 배열을 생성합니다.
+    let combinedArrFGraphData = [];
+    for (let i = 0; i < FGraphData.length; i++) {
+      const paddedFGraphData = padArray(FGraphData[i], maxLengthFGraphData);
+      for (let j = 0; j < paddedFGraphData.length; j++) {
+        if (!combinedArrFGraphData[j]) {
+          combinedArrFGraphData[j] = 0;
+        }
+        if (paddedFGraphData[j] === 1) {
+          combinedArrFGraphData[j] = 1;
+        }
+      }
+    }
+
+    // console.log(combinedArrSGraphData); // SGraphData 합쳐진 배열 로그
+    // console.log(combinedArrFGraphData); // FGraphData 합쳐진 배열 로그
+    setExist(combinedArrSGraphData);
+    setFall(combinedArrFGraphData);
+    // 필요한 경우 combinedArr을 상태로 설정할 수 있습니다.
+    // setState(combinedArr);
+  }, [SGraphData, FGraphData]);
+
+  // const result1 = SGraphData.map(arr => arr.includes(1) ? 1 : 0);
+  // const result2 = FGraphData.map(arr => arr.includes(1) ? 1 : 0);
+  // console.log(result1)
+  // console.log(result2)
 
   // 재실 패턴 감지 일,주,월 버튼 요청 로직 API
   const fetchTimeTotalData = async () => {
@@ -160,6 +306,7 @@ function MainContents(props) {
   // 재실 패턴 일 주 월 버튼함수
   const handleButtonClick = (period) => {
     setCurrentPeriod(period);
+    setTotalStatusData([]); // 기간이 변경될 때 TotalStatusData를 빈 배열로 재설정합니다.
   };
 
   //  알람 시간 데이터 파싱(timestamp => 날짜로 바꿔서 보여줌)
@@ -174,14 +321,14 @@ function MainContents(props) {
     // Initial call to fetchStatusAndFallData
     if (props.deviceId.length > 0) {
       fetchTimeTotalData();
-        fetchStatusAndFallData();
+      fetchStatusAndFallData();
     }
     setInterval(() => {
-      fetchStatusAndFallData();
+      fetchStatusAndFallData()
     }, 60000);
-
   }, [props.deviceId, token]);
 
+  // console.log(SGraphData);
   // 로그인 상태 API 호출
   useEffect(() => {
     fetchDeviceData();
@@ -192,10 +339,15 @@ function MainContents(props) {
       const timestamps = dataArr.flatMap((deviceData) =>
         deviceData.map((value) => value.timestamp)
       );
-
-
+      
       const uniqueTimestamps = Array.from(new Set(timestamps));
       setTotalStatusData(uniqueTimestamps);
+        const interval = setInterval(function() {
+          console.log("Interval");
+        }, 1000);
+        
+        //인자로 함수 이름 넣어줍니다.
+        clearInterval(interval);
     } else {
       // console.error("데이터 배열이 유효하지 않습니다.");
     }
@@ -212,8 +364,6 @@ function MainContents(props) {
 
   let result = hoursToDaysAndHours(TotalStatusData.length);
 
-
-
   useEffect(() => {
     fetchTimeTotalData();
   }, [currentPeriod, token]);
@@ -221,7 +371,7 @@ function MainContents(props) {
   useEffect(() => {
     setLoading(true);
     const timeoutId = setTimeout(() => {
-      setLoading(false)
+      setLoading(false);
     }, 8500);
 
     return () => clearTimeout(timeoutId);
@@ -252,41 +402,24 @@ function MainContents(props) {
     }
   }
 
-  // 재실 그래프 두 사이의 시간
-  function convertToMinutes(timeString) {
-    const hours = parseInt(timeString.substring(0, 2));
-    const minutes = parseInt(timeString.substring(2, 4));
-    return hours * 60 + minutes;
-  }
+  function getTimeArray() {
+    const now = new Date();
+    const times = [];
 
-  function convertToTimeString(minutes) {
-    const adjustedTime = minutes - 3;
-    const hours = Math.floor(adjustedTime / 60);
-    const paddedHours = hours.toString().padStart(2, "0");
-    const paddedMinutes = (adjustedTime % 60).toString().padStart(2, "0");
-    return `${paddedHours}시${paddedMinutes}분`;
-  }
+    for (let i = 0; i < 60; i++) {
+      const time = new Date(now.getTime() - i * 60000); // Subtract i minutes
+      const hours = time.getHours();
+      const minutes = time.getMinutes();
 
-  function generateTimeArray(startTime, endTime) {
-    const startMinutes = convertToMinutes(startTime);
-    const endMinutes = convertToMinutes(endTime);
-    const timeArray = [];
+      const formattedHour = hours < 10 ? "0" + hours : hours;
+      const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
 
-    for (let minutes = startMinutes; minutes <= endMinutes; minutes++) {
-      timeArray.push(convertToTimeString(minutes));
+      const formattedTime = formattedHour + "시" + formattedMinutes + "분";
+      times.push(formattedTime);
     }
 
-    return timeArray.reverse();
+    return times;
   }
-
-  useEffect(() => {
-    if (StartDate && endDate) {
-      const startTime = StartDate.slice(8, 14);
-      const endTime = endDate.slice(8, 14);
-      const updatedTimeArray = generateTimeArray(startTime, endTime);
-      setTimeArray(updatedTimeArray);
-    }
-  }, [StartDate, endDate]);
 
   const currentPercentage = (TotalStatusData.length / chartCurrent) * 100;
   const remainingPercentage =
@@ -317,13 +450,15 @@ function MainContents(props) {
       padding: 0,
     },
   };
+  const array = getTimeArray();
+
   // 재실 그래프 및 낙상정보 데이터
   let data = {
-    labels: timeArray,
+    labels: array,
     datasets: [
       {
         label: "   재실",
-        data: exist.slice(-60) ,
+        data: exist,
         fill: true,
         borderColor: "#00a2e6",
         backgroundColor: "#d2f3fa",
@@ -334,7 +469,7 @@ function MainContents(props) {
       },
       {
         label: "   낙상         ",
-        data: fall.slice(-60),
+        data: fall,
         fill: true,
         type: "bar",
         borderColor: "#f77d2b",
@@ -413,25 +548,6 @@ function MainContents(props) {
   };
 
 
-  // let allTimestamps = [];
-  // dataArr.forEach((value, index) => {
-  //   value.forEach((item) => {
-  //     allTimestamps.push(item.timestamp);
-  //   });
-  // });
-  
-  // // Step 2: Set 객체를 사용하여 중복을 제거하기
-  // let uniqueTimestamps = [...new Set(allTimestamps)];
-  
-
-  // console.log(uniqueTimestamps)
-
-
-
-
-
-
-
   return (
     <div className="content-container">
       <div className="content-box">
@@ -477,11 +593,7 @@ function MainContents(props) {
           </div>
           <div className="main-content1">
             <>
-              {loading ? (
-                <div className="content-loading">
-                  데이터를 불러오고 있습니다···
-                </div>
-              ) : (
+              {TotalStatusData.length > 0 ? (
                 <div className="status-content">
                   <span className="Total-Time">
                     {" "}
@@ -531,6 +643,10 @@ function MainContents(props) {
                       </div>
                     ))}
                   </div>
+                </div>
+              ) : (
+                <div className="content-loading">
+                  <img src={LoadingCircle} style={{width:'25px'}}/> 데이터 불러오는 중···
                 </div>
               )}
 

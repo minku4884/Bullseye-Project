@@ -13,10 +13,26 @@ body {
 
   width: 1920px;
   height: 1080px;
+  background-color: #f5f9fc !important;
   padding: 0px;
   flex: 1;
   overflow-x: hidden;
 }
+/* 
+@media (max-width : 768px){
+  body{
+  }
+  header{
+    flex-direction: column;
+    
+  }
+  .Main {
+    width: 1000px;
+    
+  }
+    
+
+} */
 
 /* 1080px height 1920px width */
 * {

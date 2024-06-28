@@ -23,6 +23,17 @@ function Dashboard() {
   const [deviceName, setDeviceName] = useState([]);
   const token = sessionStorage.getItem("authorizeKey");
   const [deviceIdList, setDeviceIdList] = useState([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // 로딩 상태 추가
+
+  useEffect(() => {
+    // 페이지가 마운트될 때 4초 후 로딩 상태를 false로 변경
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 4000);
+
+    return () => clearTimeout(timer); // 타이머 정리
+  }, []);
 
   useEffect(() => {
     const deviceTypeData = async () => {
@@ -61,7 +72,7 @@ function Dashboard() {
   };
 
   return (
-    <div>
+    <div className="Main">
       <Practice />
       <DeviceList deviceType={deviceType} />
       <MainContents deviceId={deviceIdList} />

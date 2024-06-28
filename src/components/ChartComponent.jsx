@@ -3,7 +3,7 @@ import { Line } from "react-chartjs-2";
 import axios from "axios";
 import ApiClient, { api_method } from "../utils/ApiClient";
 import API_timestamp from "../store/timestamps"
-
+import Loading from "../asset/img/LoadingCircle.gif"
 
 
 function ChartComponent(props) {
@@ -14,9 +14,11 @@ function ChartComponent(props) {
   const [HRArr, setHRArr] = useState([]);
   const [BRArr, setBRArr] = useState([]);
   const [chartLabel, setChartLabel] = useState([]);
+  const [timeoutReached, setTimeoutReached] = useState(false);
   const maxDataValue = Math.max(...[...HRArr, ...BRArr]);
   const maxDataValueWithPadding = Math.ceil(maxDataValue * 1.29);
   let response = [];
+  let _ = require('lodash');
 
 
 
@@ -68,6 +70,7 @@ function ChartComponent(props) {
         const minute = date.getMinutes().toString().padStart(2, "0");
         const timeString = `${hour}:${minute}`;
 
+
         if (!dateCounts[timeString]) {
           dateCounts[timeString] = {
             hrCount: 0,
@@ -81,11 +84,14 @@ function ChartComponent(props) {
         } else if (value.datas.length == 13) {
           BR = value.datas[10].max_value;
           HR = value.datas[12].max_value;
+        } else if (value.datas.length == 37) {
+          BR = value.datas[17].max_value;
+          HR = value.datas[18].max_value;
         }
         dateCounts[timeString].hrCount +=
-          HR !== 0 && (HR > 95 || HR < 40) ? 1 : 0;
+          HR !== 0 && (HR > 120 || HR < 40) ? 1 : 0;
         dateCounts[timeString].brCount +=
-          BR !== 0 && (BR > 15 || BR < 5) ? 1 : 0;
+          BR !== 0 && (BR > 20 || BR < 5) ? 1 : 0;
       });
       // 해당 시간의 이벤트 ex)13:00~13:59분까지의 카운트 측정 후 sum하여 13시를 대표하는 카운트
       const chartDataArray = Object.entries(dateCounts).map(
@@ -138,7 +144,7 @@ function ChartComponent(props) {
           0
         );
 
-        // console.log(`time : ${targetTime} hrCount : ${totalHrCount} brCount : ${totalBrCount}`)
+
 
         result.push({
           time: targetTime,
@@ -162,6 +168,16 @@ function ChartComponent(props) {
     searchData();
   }, [props.deviceId]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimeoutReached(true);
+    }, 10000); // 10초 타이머 설정
+
+    // 타이머 해제
+    return () => clearTimeout(timer);
+    }, []);
+    const allZeros = checkAllZeros(HRArr, BRArr);
+    
   // HRArr, BRArr 카운트 0일 시 감지된 데이터 없음
   function checkAllZeros(arr1, arr2) {
     for (let idx in arr1) {
@@ -171,6 +187,7 @@ function ChartComponent(props) {
     }
     return true;
   }
+
   const data = {
     labels: chartLabel,
     datasets: [
@@ -235,13 +252,18 @@ function ChartComponent(props) {
       },
     },
   };
-
   return (
-    <div style={{ width: "694px", height: "240px", margin: "auto" }}>
-      {checkAllZeros(HRArr,BRArr) ? (
-        <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: 11 }}>
-          감지된 데이터가 없습니다
-        </div>
+<div style={{ width: "694px", height: "240px", margin: "auto" }}>
+      {allZeros ? (
+        timeoutReached ? (
+          <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: "200px" }}>
+            감지된 데이터가 없습니다
+          </div>
+        ) : (
+          <div style={{ fontSize: "18px", fontWeight: 500, lineHeight: "200px" }}>
+            <img src={Loading} alt="loading" /> 데이터 불러오는 중···
+          </div>
+        )
       ) : (
         <Line data={data} options={chartOptions} />
       )}

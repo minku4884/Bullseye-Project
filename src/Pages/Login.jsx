@@ -5,7 +5,7 @@ import ApiClient, { api_method } from "../utils/ApiClient";
 import MainLayout from "../routes/MainLayout";
 import Modal from "react-bootstrap/Modal";
 import { useNavigate, Routes, Route } from "react-router-dom";
-import mainlogo from "../asset/img/logo_pwc.png";
+import mainlogo from "../asset/img/Bullseye logo_.png"
 import axios from "axios";
 
 const Login = () => {
